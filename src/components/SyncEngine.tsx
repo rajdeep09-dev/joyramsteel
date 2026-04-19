@@ -23,52 +23,49 @@ export function SyncEngine() {
       try {
         // --- PULL FROM CLOUD ---
         const { data: cloudProducts } = await supabase.from('products').select('*');
-        if (cloudProducts && cloudProducts.length > 0) {
-          await db.products.bulkPut(cloudProducts);
-        }
+        if (cloudProducts && cloudProducts.length > 0) await db.products.bulkPut(cloudProducts);
 
         const { data: cloudVariants } = await supabase.from('variants').select('*');
-        if (cloudVariants && cloudVariants.length > 0) {
-          await db.variants.bulkPut(cloudVariants);
-        }
+        if (cloudVariants && cloudVariants.length > 0) await db.variants.bulkPut(cloudVariants);
 
         const { data: cloudCustomers } = await supabase.from('customers').select('*');
-        if (cloudCustomers && cloudCustomers.length > 0) {
-          await db.customers.bulkPut(cloudCustomers);
-        }
+        if (cloudCustomers && cloudCustomers.length > 0) await db.customers.bulkPut(cloudCustomers);
 
         const { data: cloudKhataTransactions } = await supabase.from('khata_transactions').select('*');
-        if (cloudKhataTransactions && cloudKhataTransactions.length > 0) {
-          await db.khata_transactions.bulkPut(cloudKhataTransactions);
-        }
+        if (cloudKhataTransactions && cloudKhataTransactions.length > 0) await db.khata_transactions.bulkPut(cloudKhataTransactions);
+
+        const { data: cloudSales } = await supabase.from('sales').select('*');
+        if (cloudSales && cloudSales.length > 0) await db.sales.bulkPut(cloudSales);
+
+        const { data: cloudSaleItems } = await supabase.from('sale_items').select('*');
+        if (cloudSaleItems && cloudSaleItems.length > 0) await db.sale_items.bulkPut(cloudSaleItems);
+
+        const { data: cloudBills } = await supabase.from('bills').select('*');
+        if (cloudBills && cloudBills.length > 0) await db.bills.bulkPut(cloudBills);
 
         // --- PUSH TO CLOUD ---
-        // Push any local items that might be missing in the cloud.
-        // For a robust app, use timestamp diffing. This is a lightweight approach.
         const localProducts = await db.products.toArray();
-        if (localProducts.length > 0) {
-          await supabase.from('products').upsert(localProducts, { onConflict: 'id' }).select();
-        }
+        if (localProducts.length > 0) await supabase.from('products').upsert(localProducts);
 
         const localVariants = await db.variants.toArray();
-        if (localVariants.length > 0) {
-          await supabase.from('variants').upsert(localVariants, { onConflict: 'id' }).select();
-        }
+        if (localVariants.length > 0) await supabase.from('variants').upsert(localVariants);
         
         const localCustomers = await db.customers.toArray();
-        if (localCustomers.length > 0) {
-          await supabase.from('customers').upsert(localCustomers, { onConflict: 'id' }).select();
-        }
+        if (localCustomers.length > 0) await supabase.from('customers').upsert(localCustomers);
+
+        const localBills = await db.bills.toArray();
+        if (localBills.length > 0) await supabase.from('bills').upsert(localBills);
         
-        // Push pending sales
+        // Push pending sales & items
         const pendingSales = await db.sales.where('sync_status').equals('pending').toArray();
         if (pendingSales.length > 0) {
-          const { error } = await supabase.from('sales').upsert(
-            pendingSales.map(s => ({ ...s, sync_status: 'synced' })), 
-            { onConflict: 'id' }
-          );
+          const { error } = await supabase.from('sales').upsert(pendingSales.map(s => ({ ...s, sync_status: 'synced' })));
           if (!error) {
-            // Mark as synced locally
+            // Also push related sale items
+            const saleIds = pendingSales.map(s => s.id);
+            const items = await db.sale_items.where('sale_id').anyOf(saleIds).toArray();
+            if (items.length > 0) await supabase.from('sale_items').upsert(items);
+            
             await db.sales.bulkPut(pendingSales.map(s => ({ ...s, sync_status: 'synced' })));
           }
         }
@@ -76,10 +73,7 @@ export function SyncEngine() {
         // Push pending khata transactions
         const pendingKhataTransactions = await db.khata_transactions.where('sync_status').equals('pending').toArray();
         if (pendingKhataTransactions.length > 0) {
-          const { error } = await supabase.from('khata_transactions').upsert(
-            pendingKhataTransactions.map(tx => ({ ...tx, sync_status: 'synced' })),
-            { onConflict: 'id' }
-          );
+          const { error } = await supabase.from('khata_transactions').upsert(pendingKhataTransactions.map(tx => ({ ...tx, sync_status: 'synced' })));
           if (!error) {
             await db.khata_transactions.bulkPut(pendingKhataTransactions.map(tx => ({ ...tx, sync_status: 'synced' })));
           }
