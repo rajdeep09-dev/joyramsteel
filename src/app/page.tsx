@@ -25,15 +25,15 @@ const item = {
 };
 
 export default function Dashboard() {
-  const sales = useLiveQuery(() => db.sales.toArray(), []) || [];
-  const saleItems = useLiveQuery(() => db.sale_items.toArray(), []) || [];
-  const variants = useLiveQuery(() => db.variants.toArray(), []) || [];
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
-  const customers = useLiveQuery(() => db.customers.toArray(), []) || [];
+  const sales = useLiveQuery(() => db.sales.toArray(), []);
+  const saleItems = useLiveQuery(() => db.sale_items.toArray(), []);
+  const variants = useLiveQuery(() => db.variants.toArray(), []);
+  const products = useLiveQuery(() => db.products.toArray(), []);
+  const customers = useLiveQuery(() => db.customers.toArray(), []);
 
-  const isLoading = !sales.length && !saleItems.length && !variants.length && !products.length && !customers.length;
+  const isDataLoading = sales === undefined || saleItems === undefined || variants === undefined || products === undefined || customers === undefined;
 
-  if (isLoading && !products.length) { // Only show loading if we literally have no data yet
+  if (isDataLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-zinc-400 font-black uppercase tracking-[0.3em] animate-pulse text-xs">
@@ -43,15 +43,22 @@ export default function Dashboard() {
     );
   }
 
+  // Fallback to empty arrays if data has loaded but is empty
+  const allSales = sales || [];
+  const allSaleItems = saleItems || [];
+  const allVariants = variants || [];
+  const allProducts = products || [];
+  const allCustomers = customers || [];
+
   const todayStr = new Date().toISOString().split('T')[0];
-  const todaysSales = sales.filter(s => s.date.startsWith(todayStr));
+  const todaysSales = allSales.filter(s => s.date.startsWith(todayStr));
   
   const todayRevenue = todaysSales.reduce((acc, sale) => acc + sale.total_amount, 0);
-  const itemsSoldToday = saleItems.filter(si => todaysSales.find(s => s.id === si.sale_id))
+  const itemsSoldToday = allSaleItems.filter(si => todaysSales.find(s => s.id === si.sale_id))
                                   .reduce((acc, curr) => acc + curr.quantity, 0);
   
-  const pendingKhata = customers.reduce((acc, curr) => acc + curr.balance, 0);
-  const khataFollowups = customers.filter(c => c.status === "Overdue" && c.balance > 0);
+  const pendingKhata = allCustomers.reduce((acc, curr) => acc + curr.balance, 0);
+  const khataFollowups = allCustomers.filter(c => c.status === "Overdue" && c.balance > 0);
 
   const todayCash = todaysSales.filter(s => s.payment_method === 'cash').reduce((acc, s) => acc + s.total_amount, 0);
   const todayUpi = todaysSales.filter(s => s.payment_method === 'upi').reduce((acc, s) => acc + s.total_amount, 0);
@@ -61,8 +68,8 @@ export default function Dashboard() {
   const cashPercentage = totalReceived > 0 ? Math.round(((todayCash + todaySplit/2) / totalReceived) * 100) : 0;
   const upiPercentage = totalReceived > 0 ? 100 - cashPercentage : 0;
 
-  const lowStock = variants.filter(v => v.stock < 10).map(v => {
-    const p = products.find(p => p.id === v.product_id);
+  const lowStock = allVariants.filter(v => v.stock < 10).map(v => {
+    const p = allProducts.find(p => p.id === v.product_id);
     return {
       id: v.id,
       name: p?.name || "Unknown",
