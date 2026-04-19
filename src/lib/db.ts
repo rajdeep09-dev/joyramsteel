@@ -26,10 +26,10 @@ export interface Sale {
   id: string;
   total_amount: number;
   discount: number;
-  payment_method: 'cash' | 'upi' | 'credit' | 'split';
+  payment_method: 'cash' | 'upi' | 'khata' | 'split';
   split_cash?: number;
   split_upi?: number;
-  split_credit?: number;
+  split_khata?: number;
   customer_id?: string;
   date: string;
   sync_status: 'pending' | 'synced';
