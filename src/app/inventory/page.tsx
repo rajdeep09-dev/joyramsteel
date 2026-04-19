@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import imageCompression from 'browser-image-compression';
+import { BulkImportModal } from "@/components/BulkImportModal";
 
 export default function Inventory() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -32,6 +33,8 @@ export default function Inventory() {
   const [viewMode, setViewMode] = useState<"catalog" | "list">("catalog");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
+  
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   
   const [newSize, setNewSize] = useState("");
   const [newStock, setNewStock] = useState("");
@@ -203,30 +206,34 @@ export default function Inventory() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      <BulkImportModal isOpen={isBulkImportOpen} onClose={() => setIsBulkImportOpen(false)} />
       <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
-        <div className="flex gap-2 p-1 bg-zinc-100 rounded-2xl w-fit">
+        <div className="flex gap-2 p-1 bg-zinc-100 rounded-2xl w-fit text-left">
           <Button variant="ghost" className={`rounded-xl h-10 px-4 flex gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'catalog' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'}`} onClick={() => setViewMode('catalog')}><LayoutGrid className="h-4 w-4" /> Catalog</Button>
           <Button variant="ghost" className={`rounded-xl h-10 px-4 flex gap-2 font-black text-[10px] uppercase tracking-widest ${viewMode === 'list' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400'}`} onClick={() => setViewMode('list')}><List className="h-4 w-4" /> Flat List</Button>
         </div>
-        <Dialog>
-          <DialogTrigger render={<Button size="lg" className="bg-zinc-900 hover:bg-zinc-800 text-white shadow-2xl rounded-2xl h-14 px-8 font-black transition-all active:scale-95" />} >
-            <Plus className="mr-2 h-5 w-5" /> Add Master Product
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] border-none shadow-2xl bg-white/90 backdrop-blur-2xl">
-            <DialogHeader><DialogTitle className="text-2xl font-black text-zinc-900">Add Master Product</DialogTitle></DialogHeader>
-            <div className="grid gap-6 py-6 text-left">
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Product Name</Label>
-                <Input value={newProductName} onChange={e => setNewProductName(e.target.value)} placeholder="e.g. Royal Steel Thali" className="h-14 rounded-2xl" />
+        <div className="flex gap-3">
+          <Button onClick={() => setIsBulkImportOpen(true)} className="bg-zinc-900 hover:bg-black text-white shadow-2xl rounded-2xl h-14 px-8 font-black transition-all active:scale-95"><Plus className="mr-2 h-5 w-5" /> Bulk Import</Button>
+          <Dialog>
+            <DialogTrigger render={<Button size="lg" className="bg-white border-2 border-zinc-900 hover:bg-zinc-50 text-zinc-900 shadow-2xl rounded-2xl h-14 px-8 font-black transition-all active:scale-95" />} >
+              <Plus className="mr-2 h-5 w-5" /> Add Master Product
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] border-none shadow-2xl bg-white/90 backdrop-blur-2xl">
+              <DialogHeader><DialogTitle className="text-2xl font-black text-zinc-900 text-left">Add Master Product</DialogTitle></DialogHeader>
+              <div className="grid gap-6 py-6 text-left">
+                <div className="space-y-2">
+                  <Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Product Name</Label>
+                  <Input value={newProductName} onChange={e => setNewProductName(e.target.value)} placeholder="e.g. Royal Steel Thali" className="h-14 rounded-2xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Category</Label>
+                  <Input value={newProductCategory} onChange={e => setNewProductCategory(e.target.value)} placeholder="e.g. Plates" className="h-14 rounded-2xl" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Category</Label>
-                <Input value={newProductCategory} onChange={e => setNewProductCategory(e.target.value)} placeholder="e.g. Plates" className="h-14 rounded-2xl" />
-              </div>
-            </div>
-            <Button onClick={handleAddMasterProduct} className="w-full h-16 text-lg rounded-2xl bg-zinc-900 text-white font-black uppercase tracking-widest">Save Product</Button>
-          </DialogContent>
-        </Dialog>
+              <Button onClick={handleAddMasterProduct} className="w-full h-16 text-lg rounded-2xl bg-zinc-900 text-white font-black uppercase tracking-widest">Save Product</Button>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="relative">
@@ -242,7 +249,7 @@ export default function Inventory() {
               <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between cursor-pointer hover:bg-zinc-50/50 transition-all gap-6" onClick={() => setExpandedId(expandedId === product.id ? null : product.id)}>
                 <div className="flex items-center gap-6 w-full sm:w-auto text-left">
                   <Avatar className="h-24 w-24 rounded-3xl bg-white shrink-0 shadow-xl border border-zinc-50"><AvatarImage src={product.image_url} className="object-cover mix-blend-multiply" /><AvatarFallback className="rounded-3xl bg-zinc-50"><PackageOpen className="h-10 w-10 text-zinc-300" /></AvatarFallback></Avatar>
-                  <div className="flex-1">
+                  <div className="flex-1 text-left">
                     <h3 className="font-black text-2xl text-zinc-900 uppercase italic">{product.name}</h3>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
                       <Badge className="bg-zinc-900 text-white font-black px-3 py-1 text-[10px] uppercase tracking-widest">{product.category}</Badge>
@@ -276,7 +283,7 @@ export default function Inventory() {
                           </div>
                         ))}
                         <Dialog onOpenChange={(isOpen) => { if(!isOpen) { setCapturedImage(null); setCapturedFile(null); setNewImageUrl(""); } }}>
-                          <DialogTrigger render={<button className="border-4 border-dashed border-zinc-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 transition-all min-h-[300px] group" />}><div className="p-6 bg-zinc-50 shadow-inner rounded-full mb-4 group-hover:bg-white transition-all"><Plus className="h-10 w-10 text-zinc-300 group-hover:text-zinc-900" /></div><span className="font-black text-sm uppercase tracking-widest">New Size / Variant</span></DialogTrigger>
+                          <DialogTrigger render={<button className="border-4 border-dashed border-zinc-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-zinc-400 hover:text-zinc-900 hover:border-zinc-900 transition-all min-h-[300px] group" />} ><div className="p-6 bg-zinc-50 shadow-inner rounded-full mb-4 group-hover:bg-white transition-all"><Plus className="h-10 w-10 text-zinc-300 group-hover:text-zinc-900" /></div><span className="font-black text-sm uppercase tracking-widest">New Size / Variant</span></DialogTrigger>
                           <DialogContent className="sm:max-w-[500px] rounded-[2.5rem] border-none shadow-2xl bg-white/90 backdrop-blur-2xl">
                             <DialogHeader><DialogTitle className="text-2xl font-black text-zinc-900 text-left">Add New Variant</DialogTitle></DialogHeader>
                             <div className="grid gap-6 py-4">
@@ -307,7 +314,7 @@ export default function Inventory() {
           <Card className="border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden">
             <CardContent className="p-0">
               <Table>
-                <TableHeader className="bg-zinc-100/50 border-none"><TableRow className="border-none h-16"><TableHead className="pl-8 font-black uppercase text-[10px] tracking-widest text-zinc-400">Product</TableHead><TableHead className="font-black uppercase text-[10px] tracking-widest text-zinc-400">Category</TableHead><TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-zinc-400">Stock</TableHead><TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-zinc-400">MRP</TableHead></TableRow></TableHeader>
+                <TableHeader className="bg-zinc-100/50 border-none"><TableRow className="border-none h-16 text-left"><TableHead className="pl-8 font-black uppercase text-[10px] tracking-widest text-zinc-400">Product</TableHead><TableHead className="font-black uppercase text-[10px] tracking-widest text-zinc-400">Category</TableHead><TableHead className="text-right font-black uppercase text-[10px] tracking-widest text-zinc-400">Stock</TableHead><TableHead className="text-right pr-8 font-black uppercase text-[10px] tracking-widest text-zinc-400">MRP</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {productsData.flatMap(p => p.variants.map(v => ({ ...v, productName: p.name, category: p.category })))
                     .filter(v => v.productName.toLowerCase().includes(search.toLowerCase()) || v.size.toLowerCase().includes(search.toLowerCase()))
