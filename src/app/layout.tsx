@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { AIChatBot } from "@/components/AIChatBot";
 import { GlobalLoader } from "@/components/GlobalLoader";
+import { SyncEngine } from "@/components/SyncEngine";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,10 +56,6 @@ export default function RootLayout({
         </div>
         <Toaster />
       </body>
-    </html>
-  );
-}
-    </body>
     </html>
   );
 }

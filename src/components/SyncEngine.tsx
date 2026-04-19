@@ -30,6 +30,11 @@ export function SyncEngine() {
           await db.customers.bulkPut(cloudCustomers);
         }
 
+        const { data: cloudKhataTransactions } = await supabase.from('khata_transactions').select('*');
+        if (cloudKhataTransactions && cloudKhataTransactions.length > 0) {
+          await db.khata_transactions.bulkPut(cloudKhataTransactions);
+        }
+
         // --- PUSH TO CLOUD ---
         // Push any local items that might be missing in the cloud.
         // For a robust app, use timestamp diffing. This is a lightweight approach.
@@ -58,6 +63,18 @@ export function SyncEngine() {
           if (!error) {
             // Mark as synced locally
             await db.sales.bulkPut(pendingSales.map(s => ({ ...s, sync_status: 'synced' })));
+          }
+        }
+
+        // Push pending khata transactions
+        const pendingKhataTransactions = await db.khata_transactions.where('sync_status').equals('pending').toArray();
+        if (pendingKhataTransactions.length > 0) {
+          const { error } = await supabase.from('khata_transactions').upsert(
+            pendingKhataTransactions.map(tx => ({ ...tx, sync_status: 'synced' })),
+            { onConflict: 'id' }
+          );
+          if (!error) {
+            await db.khata_transactions.bulkPut(pendingKhataTransactions.map(tx => ({ ...tx, sync_status: 'synced' })));
           }
         }
 

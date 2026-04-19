@@ -69,6 +69,19 @@ CREATE TABLE bills (
     image_url TEXT
 );
 
+-- 7. Khata Transactions Table
+CREATE TABLE khata_transactions (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT REFERENCES customers(id) ON DELETE CASCADE,
+    amount NUMERIC NOT NULL,
+    type TEXT NOT NULL,
+    payment_method TEXT NOT NULL,
+    date TEXT NOT NULL,
+    proof_image_url TEXT,
+    notes TEXT,
+    sync_status TEXT NOT NULL DEFAULT 'synced'
+);
+
 -- Enable Row Level Security (Optional but recommended)
 -- ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE variants ENABLE ROW LEVEL SECURITY;
@@ -76,3 +89,4 @@ CREATE TABLE bills (
 -- ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE bills ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE khata_transactions ENABLE ROW LEVEL SECURITY;

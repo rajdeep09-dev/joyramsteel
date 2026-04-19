@@ -54,6 +54,18 @@ export interface Customer {
   status: 'Overdue' | 'Recent' | 'Clear';
 }
 
+export interface KhataTransaction {
+  id: string;
+  customer_id: string;
+  amount: number;
+  type: 'payment_received' | 'credit_given';
+  payment_method: 'cash' | 'upi' | 'bank_transfer' | 'other';
+  date: string;
+  proof_image_url?: string;
+  notes?: string;
+  sync_status: 'pending' | 'synced';
+}
+
 export interface Bill {
   id: string;
   supplier: string;
@@ -69,15 +81,17 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   sales: EntityTable<Sale, 'id'>;
   sale_items: EntityTable<SaleItem, 'id'>;
   customers: EntityTable<Customer, 'id'>;
+  khata_transactions: EntityTable<KhataTransaction, 'id'>;
   bills: EntityTable<Bill, 'id'>;
 };
 
-db.version(3).stores({
+db.version(4).stores({
   products: 'id, name, category', 
   variants: 'id, product_id, size, barcode', 
   sales: 'id, date, sync_status',
   sale_items: 'id, sale_id, variant_id',
   customers: 'id, name, phone, status',
+  khata_transactions: 'id, customer_id, date, sync_status',
   bills: 'id, supplier, status'
 });
 
