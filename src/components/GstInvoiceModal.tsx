@@ -199,7 +199,11 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         <div className="flex justify-between items-center px-1">
           <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Inventory List</Label>
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1"><Layout className="h-3 w-3" /> Quick Dropdown</Button>} />
+            <DropdownMenuTrigger render={
+              <Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">
+                <Layout className="h-3 w-3" /> Quick Dropdown
+              </Button>
+            } />
             <DropdownMenuContent className="max-h-[400px] overflow-y-auto rounded-[2rem] p-3 min-w-[300px] shadow-[0_40px_80px_rgba(0,0,0,0.2)] border-zinc-100 bg-white z-[6000]">
               <div className="p-3 border-b border-zinc-50 mb-2"><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Select Product</p></div>
               {catalog?.map((p: any) => (
@@ -233,7 +237,11 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
       <div className="mt-auto grid grid-cols-2 gap-4 pb-10">
         <Button onClick={()=>window.print()} variant="outline" className="h-20 rounded-[1.5rem] border-2 border-zinc-100 font-black tracking-widest text-[10px] uppercase"><Printer className="h-6 w-6 mr-3 text-zinc-400" /> Print</Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase"><Download className="h-6 w-6 mr-3" /> Export</Button>} />
+          <DropdownMenuTrigger render={
+            <Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase">
+              <Download className="h-6 w-6 mr-3" /> Export
+            </Button>
+          } />
           <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
              <DropdownMenuItem onClick={()=>exportDoc('img')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><ImageIcon className="h-6 w-6 text-blue-600" /> Image</DropdownMenuItem>
              <DropdownMenuItem onClick={()=>exportDoc('pdf')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><FileText className="h-6 w-6 text-red-600" /> PDF</DropdownMenuItem>

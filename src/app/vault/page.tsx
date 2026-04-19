@@ -70,13 +70,16 @@ export default function Vault() {
       }
     }
     
+    const now = new Date().toISOString();
     await db.bills.add({
       id: `B-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
       supplier: newSupplier,
       date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       amount: parseInt(newAmount),
       status: "Pending",
-      image_url: finalBillUrl
+      image_url: finalBillUrl,
+      updated_at: now,
+      is_deleted: 0
     });
     
     toast.success("Bill added to vault");
@@ -84,7 +87,7 @@ export default function Vault() {
   };
 
   const handleMarkPaid = async (id: string) => {
-    await db.bills.update(id, { status: "Paid" });
+    await db.bills.update(id, { status: "Paid", updated_at: new Date().toISOString() });
     toast.success("Marked as Paid");
   };
 

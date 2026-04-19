@@ -21,6 +21,12 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { GstInvoiceModal } from "@/components/GstInvoiceModal";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CartItem extends Variant {
   qty: number;
@@ -218,7 +224,7 @@ export default function POS() {
                       <Search className="h-5 w-5 text-zinc-400" />
                       <span>BROWSE CATALOG...</span>
                     </div>
-                  </div >
+                  </Button>
                 } />
                 <DropdownMenuContent className="w-[calc(100vw-3rem)] max-h-[70vh] overflow-y-auto rounded-[2rem] p-3 shadow-2xl border-zinc-100 bg-white/95 backdrop-blur-3xl z-[500] flex flex-col gap-2">
                    <div className="sticky top-0 bg-white/50 backdrop-blur-sm p-1 z-10">
@@ -386,7 +392,7 @@ export default function POS() {
                       
                       <div className="flex-1 min-w-0">
                         <h4 className="font-black text-zinc-900 text-sm truncate uppercase tracking-tight">{item.productName}</h4>
-                        <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-0.5">{item.size} &bull; ₹{item.base_price}</div>
+                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{item.size} &bull; ₹{item.base_price}</div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-2 shrink-0">

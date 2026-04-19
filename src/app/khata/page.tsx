@@ -48,13 +48,16 @@ export default function Khata() {
     const balance = newBalance ? parseInt(newBalance) : 0;
     
     try {
+      const now = new Date().toISOString();
       await db.customers.add({
         id: uuidv4(),
         name: newName,
         phone: newPhone,
         balance,
         last_tx: "Just added",
-        status: balance > 0 ? "Overdue" : "Clear"
+        status: balance > 0 ? "Overdue" : "Clear",
+        updated_at: now,
+        is_deleted: 0
       });
       toast.success("Customer Added!");
       setNewName(""); setNewPhone(""); setNewBalance("");
@@ -191,6 +194,7 @@ function CustomerRow({ customer, onSendReminder }: { customer: any, onSendRemind
       }
 
       const txId = uuidv4();
+      const now = new Date().toISOString();
       await db.transaction('rw', db.customers, db.khata_transactions, async () => {
         await db.khata_transactions.add({
           id: txId,
@@ -198,17 +202,20 @@ function CustomerRow({ customer, onSendReminder }: { customer: any, onSendRemind
           amount: amount,
           type: 'payment_received',
           payment_method: paymentMethod as any,
-          date: new Date().toISOString(),
+          date: now,
           proof_image_url: proofImageUrl,
           notes: notes,
-          sync_status: 'pending'
+          sync_status: 'pending',
+          updated_at: now,
+          is_deleted: 0
         });
 
         const newBalance = Math.max(0, customer.balance - amount);
         await db.customers.update(customer.id, {
           balance: newBalance,
           status: newBalance === 0 ? "Clear" : "Overdue",
-          last_tx: "Just now"
+          last_tx: "Just now",
+          updated_at: now
         });
       });
 

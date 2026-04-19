@@ -94,6 +94,7 @@ export function AIChatBot() {
       // Sync AI data with local Dexie DB so the UI updates instantly
       if (data.data) {
         const { productName, category, quantity, mrp, msp, imageUrl } = data.data;
+        const now = new Date().toISOString();
         
         // 1. Check if product exists locally
         let existingProd = await db.products.where('name').equals(productName).first();
@@ -105,7 +106,9 @@ export function AIChatBot() {
             id: prodId,
             name: productName,
             category: category || "General",
-            created_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now,
+            is_deleted: 0
           });
         }
 
@@ -116,7 +119,8 @@ export function AIChatBot() {
             await db.variants.update(variant.id, { 
               stock: variant.stock + quantity,
               base_price: mrp || variant.base_price,
-              msp: msp || variant.msp
+              msp: msp || variant.msp,
+              updated_at: now
             });
           } else {
             await db.variants.add({
@@ -128,7 +132,9 @@ export function AIChatBot() {
               cost_price: msp || 0,
               base_price: mrp || 0,
               msp: msp || 0,
-              created_at: new Date().toISOString()
+              created_at: now,
+              updated_at: now,
+              is_deleted: 0
             });
           }
         }

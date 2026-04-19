@@ -77,6 +77,7 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
   const handleFinalAdd = async () => {
     setIsLoading(true);
     try {
+      const now = new Date().toISOString();
       await db.transaction('rw', db.products, db.variants, async () => {
         for (const p of processedProducts) {
           await db.products.add({
@@ -84,7 +85,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
             name: p.name,
             category: p.category,
             image_url: p.image,
-            created_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now,
+            is_deleted: 0
           });
 
           await db.variants.add({
@@ -96,7 +99,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
             cost_price: p.msp,
             msp: p.msp,
             base_price: p.mrp,
-            created_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now,
+            is_deleted: 0
           });
         }
       });
