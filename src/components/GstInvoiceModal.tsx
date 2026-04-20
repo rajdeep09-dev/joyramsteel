@@ -14,7 +14,8 @@ import {
   Plus,
   Trash2,
   X,
-  Layout
+  Layout,
+  Settings2
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -44,6 +45,16 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
   const [items, setItems] = useState([{ desc: "", hsn: "7323", qty: "1", unit: "pcs", finalRate: "", gstRate: "18", taxableValue: 0, cgst: 0, sgst: 0, total: 0 }]);
   const [receiver, setReceiver] = useState({ name: "", address: "", gstin: "" });
   const [invoiceDetails, setInvoiceDetails] = useState({ no: "", date: new Date().toISOString().split('T')[0] });
+  
+  // Advanced Editable Details
+  const [shopDetails, setShopDetails] = useState({
+    name: "JOY RAM STEEL",
+    address: "Dhajanagar, Udaipur, Gomati Tripura, Pin - 799114",
+    gstin: "16ENCPD2885R1ZE",
+    totalInWords: "Rupees Only",
+    igst: "0.00",
+    summaryHsn: "-"
+  });
 
   // Pre-fill from POS if provided
   React.useEffect(() => {
@@ -68,7 +79,6 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
     }
   }, [isOpen, initialItems]);
 
-  // Catalog for dropdown
   const catalog = useLiveQuery(async () => {
     const products = await db.products.where('is_deleted').equals(0).toArray();
     const variants = await db.variants.where('is_deleted').equals(0).toArray();
@@ -147,11 +157,11 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
               <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] uppercase tracking-widest">2. View</TabsTrigger>
             </TabsList>
             <TabsContent value="edit" className="flex-1 overflow-y-auto bg-white m-0 p-6 pb-32">
-              <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
+              <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} shopDetails={shopDetails} setShopDetails={setShopDetails} />
             </TabsContent>
             <TabsContent value="preview" className="flex-1 overflow-auto bg-zinc-950 flex items-start justify-center p-4 m-0 scrollbar-hide">
               <div className="origin-top transform-gpu scale-[0.42] transition-all">
-                <PreviewContent ref={invoiceRef} receiver={receiver} invoiceDetails={invoiceDetails} items={items} totalTaxable={totalTaxable} totalCgst={totalCgst} totalSgst={totalSgst} grandTotal={grandTotal} />
+                <PreviewContent ref={invoiceRef} receiver={receiver} invoiceDetails={invoiceDetails} items={items} totalTaxable={totalTaxable} totalCgst={totalCgst} totalSgst={totalSgst} grandTotal={grandTotal} shopDetails={shopDetails} />
               </div>
             </TabsContent>
           </Tabs>
@@ -160,11 +170,11 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
         {/* DESKTOP: Side-by-Side */}
         <div className="hidden md:flex flex-row h-full w-full overflow-hidden bg-zinc-950">
           <div className="w-[500px] h-full bg-white shrink-0 border-r border-zinc-200 overflow-y-auto p-10 scrollbar-hide">
-             <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
+             <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} shopDetails={shopDetails} setShopDetails={setShopDetails} />
           </div>
           <div className="flex-1 h-full overflow-auto p-20 flex items-start justify-center scrollbar-hide">
              <div className="origin-top transform-gpu scale-[0.8] lg:scale-[0.9] xl:scale-100 transition-all">
-                <PreviewContent ref={invoiceRef} receiver={receiver} invoiceDetails={invoiceDetails} items={items} totalTaxable={totalTaxable} totalCgst={totalCgst} totalSgst={totalSgst} grandTotal={grandTotal} />
+                <PreviewContent ref={invoiceRef} receiver={receiver} invoiceDetails={invoiceDetails} items={items} totalTaxable={totalTaxable} totalCgst={totalCgst} totalSgst={totalSgst} grandTotal={grandTotal} shopDetails={shopDetails} />
              </div>
           </div>
         </div>
@@ -174,7 +184,9 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
   );
 }
 
-function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails, items, setItems, addItem, updateItem, removeItem, catalog, onClose, exportDoc }: any) {
+function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails, items, setItems, addItem, updateItem, removeItem, catalog, onClose, exportDoc, shopDetails, setShopDetails }: any) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
     <div className="flex flex-col gap-10">
       <div className="flex justify-between items-center">
@@ -186,7 +198,43 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-3"><Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest pl-1">Billed To</Label>
+        <div className="flex justify-between items-center">
+            <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest pl-1">Billed To</Label>
+            <Button variant="ghost" className="h-auto p-0 text-[10px] font-black text-zinc-400 uppercase gap-1" onClick={()=>setShowAdvanced(!showAdvanced)}><Settings2 className="h-3 w-3" /> {showAdvanced ? 'Hide Settings' : 'Shop Settings'}</Button>
+        </div>
+        
+        {showAdvanced && (
+           <div className="p-5 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4 mb-4">
+              <div className="space-y-2">
+                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Name</span>
+                <Input value={shopDetails.name} onChange={e=>setShopDetails({...shopDetails, name:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Address</span>
+                <Input value={shopDetails.address} onChange={e=>setShopDetails({...shopDetails, address:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop GSTIN</span>
+                <Input value={shopDetails.gstin} onChange={e=>setShopDetails({...shopDetails, gstin:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Summary HSN</span>
+                  <Input value={shopDetails.summaryHsn} onChange={e=>setShopDetails({...shopDetails, summaryHsn:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">IGST Value</span>
+                  <Input value={shopDetails.igst} onChange={e=>setShopDetails({...shopDetails, igst:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Amount in Words</span>
+                <Input value={shopDetails.totalInWords} onChange={e=>setShopDetails({...shopDetails, totalInWords:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold italic" />
+              </div>
+           </div>
+        )}
+
+        <div className="space-y-2">
           <Input value={receiver.name} onChange={e=>setReceiver({...receiver, name:e.target.value})} placeholder="Customer Name" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-base shadow-inner uppercase" />
           <Input value={receiver.address} onChange={e=>setReceiver({...receiver, address:e.target.value})} placeholder="Address" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-bold text-sm shadow-inner uppercase" />
           <Input value={receiver.gstin} onChange={e=>setReceiver({...receiver, gstin:e.target.value})} placeholder="Receiver GSTIN" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-base shadow-inner uppercase" />
@@ -261,18 +309,17 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
   );
 }
 
-const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, totalTaxable, totalCgst, totalSgst, grandTotal }: any, ref: any) => {
+const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, totalTaxable, totalCgst, totalSgst, grandTotal, shopDetails }: any, ref: any) => {
   return (
     <div ref={ref} className="bg-white shadow-[0_60px_150px_rgba(0,0,0,0.6)] flex flex-col p-[15mm] text-black shrink-0" style={{ width: '210mm', minHeight: '297mm', fontFamily: "'Times New Roman', serif" }}>
       <div className="flex justify-between items-start mb-6 text-[10.5pt]">
-        <div className="font-bold tracking-tight">GSTIN : 16ENCPD2885R1ZE</div>
+        <div className="font-bold tracking-tight uppercase">GSTIN : {shopDetails.gstin}</div>
         <div className="font-bold border-b-2 border-black px-8 pb-0.5 text-[12pt] tracking-widest uppercase">TAX INVOICE</div>
-        {/* REMOVED ORIGINAL/DUPLICATE/TRIPLICATE BOX AS REQUESTED */}
         <div className="w-[140px]"></div>
       </div>
       <div className="text-center mb-10 mt-4">
-        <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">JOY RAM STEEL</h1>
-        <p className="text-[13pt] font-bold mt-3 tracking-wide">Dhajanagar, Udaipur, Gomati Tripura, Pin - 799114</p>
+        <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1>
+        <p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p>
       </div>
       <div className="flex justify-between mb-8 border-t-2 border-black pt-5 text-[11pt] leading-relaxed text-left">
         <div className="flex-1 space-y-2.5">
@@ -309,40 +356,40 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
           <table className="w-full border-2 border-black text-[9.5pt]">
             <thead>
               <tr className="border-b-2 border-black bg-zinc-50">
-                <th>HSN</th>
-                <th>Taxable Value</th>
-                <th>CGST (9%)</th>
-                <th>SGST (9%)</th>
-                <th>Total GST</th>
+                <th className="border-r-2 border-black">HSN Code</th>
+                <th className="border-r-2 border-black">Taxable Value</th>
+                <th className="border-r-2 border-black text-blue-700">CGST (9%)</th>
+                <th className="border-r-2 border-black text-blue-700">SGST (9%)</th>
+                <th className="text-blue-900">IGST</th>
               </tr>
             </thead>
             <tbody>
               <tr className="h-[10mm] font-black">
-                <td className="border-r-2 border-black text-center">-</td>
-                <td className="border-r-2 border-black pr-2">{totalTaxable.toLocaleString('en-IN')}</td>
-                <td className="border-r-2 border-black pr-2">{totalCgst.toLocaleString('en-IN')}</td>
-                <td className="border-r-2 border-black pr-2">{totalSgst.toLocaleString('en-IN')}</td>
-                <td className="pr-2">{(totalCgst+totalSgst).toLocaleString('en-IN')}</td>
+                <td className="border-r-2 border-black text-center">{shopDetails.summaryHsn}</td>
+                <td className="border-r-2 border-black pr-2">{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black pr-2 text-blue-700">{totalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black pr-2 text-blue-700">{totalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="pr-2 text-blue-900">{shopDetails.igst}</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div className="w-[80mm] border-2 border-black p-5 space-y-3 bg-zinc-50/50">
-          <div className="flex justify-between font-black text-[10.5pt]"><span>Total Taxable Value</span> <span className="font-black">₹{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-          <div className="flex justify-between text-zinc-600 text-[10pt]"><span>Add : CGST @ 9%</span> <span className="font-bold">₹{totalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-          <div className="flex justify-between text-zinc-600 text-[10pt] border-b-2 border-black pb-3"><span>Add : SGST @ 9%</span> <span className="font-bold">₹{totalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-          <div className="flex justify-between pt-3 text-[18pt] text-blue-800 underline underline-offset-8 italic"><span>GRAND TOTAL</span> <span>₹{grandTotal.toLocaleString('en-IN')}</span></div>
+          <div className="flex justify-between font-bold text-[10.5pt]"><span>Total Taxable Value</span> <span className="font-black">₹{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+          <div className="flex justify-between text-zinc-600 text-[10pt]"><span>Add : CGST @ 9%</span> <span className="font-bold text-blue-700">₹{totalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+          <div className="flex justify-between text-zinc-600 text-[10pt] border-b-2 border-black pb-3"><span>Add : SGST @ 9%</span> <span className="font-bold text-blue-700">₹{totalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+          <div className="flex justify-between pt-3 text-[18pt] text-blue-800 underline underline-offset-8 italic"><span>GRAND TOTAL</span> <span>₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
         </div>
       </div>
       <div className="mt-12 border-t-2 border-black flex justify-between items-end pb-4 pt-10">
         <div className="flex-1 pr-14">
           <div className="font-black uppercase text-[10pt] mb-3 underline decoration-black decoration-1 underline-offset-4">Total Invoice Value (In words) :</div>
           <div className="border-b-2 border-dotted border-zinc-500 w-full h-[12mm] italic text-zinc-800 text-[14pt] font-black pt-1 uppercase flex items-center justify-center text-center leading-none">
-            Rupees Only
+            {shopDetails.totalInWords}
           </div>
         </div>
         <div className="text-center min-w-[65mm]">
-          <div className="font-black uppercase text-[10pt] mb-16 tracking-tight">For JOY RAM STEEL</div>
+          <div className="font-black uppercase text-[10pt] mb-16 tracking-tight">For {shopDetails.name}</div>
           <div className="font-black uppercase text-[11pt] border-t-2 border-black pt-2 tracking-[0.2em] italic">Proprietor</div>
         </div>
       </div>

@@ -17,7 +17,8 @@ import {
   Plus,
   Layout,
   Trash2,
-  MapPin
+  MapPin,
+  Settings2
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -54,8 +55,14 @@ export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
     toName: "",
     toGstin: "",
     toAddress: "TRIPURA - 799114",
-    transporter: "Vikash Steel Logistics",
-    vehicleNo: "TR03L1621"
+    transporterName: "Vikash Steel Logistics",
+    transporterId: "16BFOPD3349R1ZT",
+    vehicleNo: "TR03L1621",
+    distance: "2476km",
+    mode: "Road",
+    type: "Outward - Supply",
+    txnType: "Regular",
+    origin: "AGARTALA, TRIPURA"
   });
 
   const catalog = useLiveQuery(async () => {
@@ -110,8 +117,8 @@ export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
         <div className="md:hidden flex flex-col h-full w-full overflow-hidden">
           <Tabs defaultValue="edit" className="flex-1 flex flex-col h-full overflow-hidden">
             <TabsList className="grid grid-cols-2 h-16 bg-zinc-900 border-b border-white/10 p-2 shrink-0">
-              <TabsTrigger value="edit" className="rounded-xl font-black text-[10px] uppercase">1. Edit Data</TabsTrigger>
-              <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] uppercase">2. View Manifest</TabsTrigger>
+              <TabsTrigger value="edit" className="rounded-xl font-black text-[10px] uppercase tracking-widest">1. Data</TabsTrigger>
+              <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] uppercase tracking-widest">2. View</TabsTrigger>
             </TabsList>
             <TabsContent value="edit" className="flex-1 overflow-y-auto bg-white m-0 p-6 pb-24">
               <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
@@ -142,6 +149,8 @@ export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
 }
 
 function EWayForm({ details, setDetails, items, setItems, handleProductSelect, removeItem, updateItem, catalog, onClose, exportDoc }: any) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex justify-between items-center">
@@ -153,33 +162,50 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
       </div>
 
       <div className="space-y-6">
-        <div className="space-y-3">
-          <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1 tracking-widest">Manifest Details</Label>
-          <Input value={details.no} onChange={e=>setDetails({...details, no:e.target.value})} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-lg shadow-inner text-center uppercase" />
+        <div className="flex justify-between items-center px-1">
+          <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Manifest Details</Label>
+          <Button variant="ghost" className="h-auto p-0 text-[10px] font-black text-zinc-400 uppercase gap-1" onClick={()=>setShowAdvanced(!showAdvanced)}><Settings2 className="h-3 w-3" /> {showAdvanced ? 'Hide Config' : 'E-Way Config'}</Button>
         </div>
+
+        {showAdvanced && (
+           <div className="p-5 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4 mb-4 text-left">
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Mode</span><Input value={details.mode} onChange={e=>setDetails({...details, mode:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" /></div>
+                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Distance</span><Input value={details.distance} onChange={e=>setDetails({...details, distance:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" /></div>
+              </div>
+              <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Transaction Type</span><Input value={details.txnType} onChange={e=>setDetails({...details, txnType:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" /></div>
+              <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Bill Type</span><Input value={details.type} onChange={e=>setDetails({...details, type:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" /></div>
+              <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Point of Origin</span><Input value={details.origin} onChange={e=>setDetails({...details, origin:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold uppercase" /></div>
+              <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Transporter ID</span><Input value={details.transporterId} onChange={e=>setDetails({...details, transporterId:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" /></div>
+           </div>
+        )}
+
+        <Input value={details.no} onChange={e=>setDetails({...details, no:e.target.value})} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-lg shadow-inner text-center uppercase" />
         
         <div className="space-y-4">
-           <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1 tracking-widest">Address Configuration</Label>
+           <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1 tracking-widest text-left block">Address Configuration</Label>
            <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-2">
+             <div className="space-y-2 text-left">
                <span className="text-[8px] font-black text-blue-600 uppercase pl-1">Sender (From)</span>
                <Input value={details.fromName} onChange={e=>setDetails({...details, fromName:e.target.value})} placeholder="From Name" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
-               <Input value={details.fromAddress} onChange={e=>setDetails({...details, fromAddress:e.target.value})} placeholder="From Address" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold" />
+               <Input value={details.fromAddress} onChange={e=>setDetails({...details, fromAddress:e.target.value})} placeholder="From Address" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold uppercase text-[10px]" />
+               <Input value={details.fromGstin} onChange={e=>setDetails({...details, fromGstin:e.target.value})} placeholder="From GSTIN" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
              </div>
-             <div className="space-y-2">
-               <span className="text-[8px] font-black text-blue-600 uppercase pl-1">Receiver (To)</span>
+             <div className="space-y-2 text-left">
+               <span className="text-[8px] font-black text-emerald-600 uppercase pl-1">Receiver (To)</span>
                <Input value={details.toName} onChange={e=>setDetails({...details, toName:e.target.value})} placeholder="Customer Name" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
-               <Input value={details.toAddress} onChange={e=>setDetails({...details, toAddress:e.target.value})} placeholder="Final Destination" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold" />
+               <Input value={details.toAddress} onChange={e=>setDetails({...details, toAddress:e.target.value})} placeholder="Final Destination" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold uppercase text-[10px]" />
+               <Input value={details.toGstin} onChange={e=>setDetails({...details, toGstin:e.target.value})} placeholder="To GSTIN" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
              </div>
            </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Transporter</Label>
-            <Input value={details.transporter} onChange={e=>setDetails({...details, transporter:e.target.value})} placeholder="Transporter" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold uppercase shadow-inner" />
+            <Input value={details.transporterName} onChange={e=>setDetails({...details, transporterName:e.target.value})} placeholder="Transporter Name" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold uppercase shadow-inner" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 text-left">
             <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Vehicle No</Label>
             <Input value={details.vehicleNo} onChange={e=>setDetails({...details, vehicleNo:e.target.value})} placeholder="Vehicle No" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase shadow-inner" />
           </div>
@@ -204,7 +230,7 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
         
         <div className="space-y-4">
           {items.map((item: any, idx: number) => (
-            <div key={idx} className="space-y-3 p-5 bg-zinc-50/50 rounded-[2rem] border border-zinc-100 shadow-inner relative group">
+            <div key={idx} className="space-y-3 p-5 bg-zinc-50/50 rounded-[2rem] border border-zinc-100 shadow-inner relative group text-left">
               <button onClick={() => removeItem(idx)} className="absolute -top-2 -right-2 bg-white shadow-md border border-zinc-100 p-2 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-all z-10">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -257,7 +283,7 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
     <div ref={ref} className="bg-white shadow-[0_60px_150px_rgba(0,0,0,0.6)] flex flex-col p-[15mm] shrink-0" style={{ width: '210mm', minHeight: '297mm', color: '#000', fontFamily: 'sans-serif' }}>
       <div className="flex justify-between items-start mb-10"><h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic text-left">e-Way Bill</h1><div className="border-4 border-black p-2"><QrCode className="h-20 w-20 text-zinc-900" /></div></div>
       <div className="space-y-8 text-left">
-        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{details.date}</span></div><div>Mode: Road</div><div>Type: Supply</div></div></section>
+        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{details.date}</span></div><div>Mode: {details.mode}</div><div>Type: {details.txnType}</div><div>Bill Type: {details.type}</div><div>Distance: {details.distance}</div></div></section>
         
         <section>
           <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">2. Address Details</div>
@@ -311,7 +337,7 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
           <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">4. Logistics Details</div>
           <table className="w-full border-collapse border-2 border-black text-[10pt]">
             <thead>
-              <tr className="bg-zinc-50 font-black uppercase border-b-2 border-black">
+              <tr className="bg-zinc-50 font-black uppercase border-b-2 border-black text-center">
                 <th className="p-2 border-r-2 border-black w-1/3">Transporter</th>
                 <th className="p-2 border-r-2 border-black w-1/3 text-center flex items-center justify-center gap-2">Vehicle <MapPin className="h-4 w-4" /></th>
                 <th className="p-2">Point of Origin</th>
@@ -319,9 +345,9 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
             </thead>
             <tbody>
               <tr className="h-[12mm] font-black uppercase italic text-center">
-                <td className="p-2 border-r-2 border-black">{details.transporter.toUpperCase()}</td>
+                <td className="p-2 border-r-2 border-black">{details.transporterName.toUpperCase()} <br/> <small className="text-[7pt] font-black text-zinc-500">{details.transporterId}</small></td>
                 <td className="p-2 border-r-2 border-black text-[14pt] tracking-tighter text-blue-700 underline">{details.vehicleNo.toUpperCase()}</td>
-                <td className="p-2 font-black not-italic">AGARTALA, TRIPURA</td>
+                <td className="p-2 font-black not-italic uppercase">{details.origin}</td>
               </tr>
             </tbody>
           </table>
