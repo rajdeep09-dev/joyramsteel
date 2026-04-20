@@ -106,6 +106,7 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
             cost_price: p.msp,
             msp: p.msp,
             base_price: p.mrp,
+            pricing_type: 'standard', // New mandatory field
             created_at: now,
             updated_at: now,
             is_deleted: 0,

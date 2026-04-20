@@ -232,13 +232,21 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
                                 <div className="font-black text-xl md:text-lg italic tracking-tight uppercase leading-none mb-1">
                                   {item.productName}
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
                                   <span className={cn(
                                     "text-[10px] font-black uppercase tracking-widest",
                                     selectedIndex === idx ? "text-white/40" : "text-zinc-400"
                                   )}>
                                     {item.size} &bull; {item.category}
                                   </span>
+                                  {item.pricing_type === 'bundle' && (
+                                    <Badge className={cn(
+                                      "px-1.5 py-0 text-[8px] font-black border-none uppercase h-4 tracking-[0.1em]",
+                                      selectedIndex === idx ? "bg-white/20 text-white" : "bg-blue-500/10 text-blue-600"
+                                    )}>
+                                      Bundle Available
+                                    </Badge>
+                                  )}
                                   <Badge className={cn(
                                     "px-2 py-0 text-[9px] font-black border-none",
                                     item.stock < 5 ? "bg-red-500 text-white" : "bg-emerald-500/10 text-emerald-500",

@@ -141,6 +141,7 @@ export function AIChatBot() {
               cost_price: msp || 0,
               base_price: mrp || 0,
               msp: msp || 0,
+              pricing_type: 'standard', // New mandatory field
               created_at: now,
               updated_at: now,
               is_deleted: 0,

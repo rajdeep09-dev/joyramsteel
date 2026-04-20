@@ -154,6 +154,7 @@ export default function Inventory() {
         msp: parseInt(newMsp),
         base_price: parseInt(newPrice),
         image_url: finalImageUrl,
+        pricing_type: 'standard', // New mandatory field
         created_at: now,
         updated_at: now,
         is_deleted: 0,

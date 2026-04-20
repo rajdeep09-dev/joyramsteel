@@ -24,6 +24,9 @@ export interface Variant {
   msp: number;
   barcode?: string;
   image_url?: string;
+  pricing_type: 'standard' | 'bundle';
+  bundle_qty?: number;
+  bundle_price?: number;
   created_at: string;
   updated_at: string;
   is_deleted: number;

@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { calculateItemTotal } from "@/lib/pricing";
 import { 
   ScanLine, Trash2, Minus, Plus, Tag, CreditCard,
   IndianRupee, QrCode, Users, Search, Percent, AlertTriangle,
   Package, ShoppingCart, ArrowRight, CheckCircle2, ChevronRight,
-  Zap, Command
+  Zap, Command, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,7 @@ interface CartItem extends Variant {
   qty: number;
   productName: string;
   image?: string;
+  line_total: number;
 }
 
 export default function POS() {
@@ -83,7 +85,7 @@ export default function POS() {
     return matchesSearch && matchesTab;
   }) || [];
 
-  const subtotal = cart.reduce((acc, item) => acc + item.base_price * item.qty, 0);
+  const subtotal = cart.reduce((acc, item) => acc + item.line_total, 0);
   const totalMsp = cart.reduce((acc, item) => acc + item.msp * item.qty, 0);
   const actualDiscount = Math.min(discount, subtotal); 
   const finalTotal = subtotal - actualDiscount;
@@ -92,22 +94,40 @@ export default function POS() {
   const addToCart = (variant: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === variant.id);
+      
+      let newQty = 1;
       if (existing) {
-        if (existing.qty + 1 > variant.stock) { toast.error("Stock limit reached!"); return prev; }
-        return prev.map(item => item.id === variant.id ? { ...item, qty: item.qty + 1 } : item);
+        // Task 3: If unit is 'kg', replace quantity. If 'pcs', increment.
+        newQty = variant.unit === 'kg' ? 1 : existing.qty + 1;
       }
+
+      if (newQty > variant.stock) {
+        toast.error("Stock limit reached!");
+        return prev;
+      }
+
+      const lineTotal = calculateItemTotal(variant, newQty);
+
+      if (existing) {
+        return prev.map(item => item.id === variant.id ? { ...item, qty: newQty, line_total: lineTotal } : item);
+      }
+
       if (variant.stock < 0.1) { toast.error("Out of stock!"); return prev; }
-      return [...prev, { ...variant, qty: 1 }];
+      return [...prev, { ...variant, qty: newQty, line_total: lineTotal }];
     });
     toast.success(`${variant.productName} added`);
   };
 
   const updateQty = (id: string, delta: number) => {
-    setCart(cart.map(item => {
+    setCart(prev => prev.map(item => {
       if (item.id === id) {
-        const newQty = Math.max(1, item.qty + delta);
+        const newQty = Math.max(0.1, item.qty + delta);
         if (newQty > item.stock) { toast.error("Stock limit reached!"); return item; }
-        return { ...item, qty: newQty };
+        return { 
+          ...item, 
+          qty: newQty, 
+          line_total: calculateItemTotal(item, newQty) 
+        };
       }
       return item;
     }));
@@ -128,10 +148,11 @@ export default function POS() {
         for (const item of cart) {
           await db.sale_items.add({
             id: uuidv4(), sale_id: saleId, variant_id: item.id, quantity: item.qty,
-            unit_price: item.base_price, subtotal: item.base_price * item.qty, updated_at: now, is_deleted: 0,
+            unit_price: item.base_price, subtotal: item.line_total, updated_at: now, is_deleted: 0,
             sync_status: 'pending'
           });
           const variant = await db.variants.get(item.id);
+          // Task 4: Deduct exact literal qty from stock
           if (variant) await db.variants.update(item.id, { stock: variant.stock - item.qty, updated_at: now });
         }
       });
@@ -262,10 +283,17 @@ export default function POS() {
                       </div>
                       <div className="flex-1 min-w-0 text-left">
                         <h4 className="font-black text-zinc-900 text-base truncate uppercase tracking-tight italic">{item.productName}</h4>
-                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{item.size} &bull; ₹{item.base_price} / {item.unit || 'pcs'}</div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{item.size} &bull; ₹{item.base_price} / {item.unit || 'pcs'}</span>
+                          {item.pricing_type === 'bundle' && (
+                            <Badge className="bg-blue-500/10 text-blue-600 border-none text-[8px] font-black h-4 px-1.5 uppercase tracking-widest">
+                              Bundle: {item.bundle_qty} for ₹{item.bundle_price}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-col items-end gap-3 shrink-0">
-                        <div className="font-black text-zinc-900 tracking-tighter text-xl italic">₹{(item.base_price * item.qty).toLocaleString()}</div>
+                        <div className="font-black text-zinc-900 tracking-tighter text-xl italic">₹{(item.line_total).toLocaleString()}</div>
                         <div className="flex items-center bg-zinc-100/80 p-1.5 rounded-2xl shadow-inner h-11 border border-white/50">
                           <button onClick={() => updateQty(item.id, -1)} className="w-10 h-full flex items-center justify-center hover:bg-white rounded-xl text-zinc-400 hover:text-zinc-900 transition-all active:scale-75"><Minus className="h-4 w-4" /></button>
                           {item.unit === 'kg' ? (
