@@ -56,8 +56,8 @@ export function Header() {
           <Bell className="h-5 w-5 text-zinc-400" />
           <span className="absolute top-3 right-3 h-2 w-2 rounded-full bg-red-500 border-2 border-white shadow-sm" />
         </Button>
-        <div className="h-12 w-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center font-black text-sm shadow-2xl shadow-zinc-900/40 border-2 border-white ring-4 ring-zinc-50">
-          JS
+        <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-white ring-4 ring-zinc-50 shadow-2xl shadow-zinc-900/40">
+          <img src="/joyramlogo.png" alt="Logo" className="h-full w-full object-cover" />
         </div>
       </div>
     </header>

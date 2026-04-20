@@ -150,6 +150,9 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
           >
             {/* Header Branding */}
             <div className="text-center space-y-1 mb-8 border-b border-zinc-100 pb-6">
+              <div className="mx-auto w-16 h-16 rounded-full overflow-hidden mb-3 border-2 border-zinc-50 shadow-md">
+                <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+              </div>
               <h2 className="text-3xl font-black tracking-tighter uppercase italic">Joy Ram Steel</h2>
               <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">All types of Kitchen Ware</p>
               <div className="pt-3 space-y-0.5">

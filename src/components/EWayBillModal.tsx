@@ -281,7 +281,17 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
 const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
   return (
     <div ref={ref} className="bg-white shadow-[0_60px_150px_rgba(0,0,0,0.6)] flex flex-col p-[15mm] shrink-0" style={{ width: '210mm', minHeight: '297mm', color: '#000', fontFamily: 'sans-serif' }}>
-      <div className="flex justify-between items-start mb-10"><h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic text-left">e-Way Bill</h1><div className="border-4 border-black p-2"><QrCode className="h-20 w-20 text-zinc-900" /></div></div>
+      <div className="flex justify-between items-start mb-10">
+        <div className="flex items-center gap-6">
+          <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-zinc-50 shadow-xl shrink-0">
+            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          <h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic text-left">e-Way Bill</h1>
+        </div>
+        <div className="border-4 border-black p-2">
+          <QrCode className="h-20 w-20 text-zinc-900" />
+        </div>
+      </div>
       <div className="space-y-8 text-left">
         <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{details.date}</span></div><div>Mode: {details.mode}</div><div>Type: {details.txnType}</div><div>Bill Type: {details.type}</div><div>Distance: {details.distance}</div></div></section>
         

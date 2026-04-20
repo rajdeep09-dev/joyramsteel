@@ -25,8 +25,8 @@ export default function LoginPage() {
       
       <Card className="w-full max-w-md border-zinc-200/60 bg-white/80 backdrop-blur-xl shadow-xl shadow-zinc-200/50">
         <CardHeader className="space-y-2 text-center pb-6">
-          <div className="mx-auto bg-zinc-900 p-3 rounded-xl w-12 h-12 flex items-center justify-center mb-2 shadow-lg shadow-zinc-900/20">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white w-6 h-6"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+          <div className="mx-auto w-20 h-20 rounded-full overflow-hidden mb-2 shadow-2xl border-2 border-zinc-100 shadow-zinc-900/20">
+            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-zinc-900">
             Joy Ram Steel

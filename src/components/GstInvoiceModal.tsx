@@ -319,9 +319,14 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
         {/* REMOVED ORIGINAL/DUPLICATE/TRIPLICATE BOX AS REQUESTED */}
         <div className="w-[140px]"></div>
       </div>
-      <div className="text-center mb-10 mt-4 text-left">
-        <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1>
-        <p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p>
+      <div className="text-center mb-10 mt-4 text-left flex items-center gap-6">
+        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-50 shadow-2xl shrink-0">
+          <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+        </div>
+        <div>
+          <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1>
+          <p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p>
+        </div>
       </div>
       <div className="flex justify-between mb-8 border-t-2 border-black pt-5 text-[11pt] leading-relaxed text-left">
         <div className="flex-1 space-y-2.5">

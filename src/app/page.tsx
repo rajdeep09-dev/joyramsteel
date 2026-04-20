@@ -136,9 +136,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-4xl font-black tracking-tight text-zinc-900">Good Evening, Suraj! 👋</h2>
-          <p className="text-zinc-500 mt-1 text-lg font-medium tracking-tight uppercase tracking-widest text-xs font-black opacity-60">Joy Ram Steel &bull; End of Day (EOD) summary</p>
+        <div className="flex items-center gap-4">
+          <div className="h-20 w-20 rounded-full overflow-hidden border-4 border-white shadow-2xl shrink-0">
+            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h2 className="text-4xl font-black tracking-tight text-zinc-900">Good Evening, Suraj! 👋</h2>
+            <p className="text-zinc-500 mt-1 text-lg font-medium tracking-tight uppercase tracking-widest text-xs font-black opacity-60">Joy Ram Steel &bull; End of Day (EOD) summary</p>
+          </div>
         </div>
         <div className="flex gap-4">
           <Link href="/pos">
