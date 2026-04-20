@@ -79,6 +79,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
     }
   }, [isOpen, initialItems]);
 
+  // Catalog for dropdown
   const catalog = useLiveQuery(async () => {
     const products = await db.products.where('is_deleted').equals(0).toArray();
     const variants = await db.variants.where('is_deleted').equals(0).toArray();
@@ -197,9 +198,9 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-12 w-12"><X className="h-6 w-6 text-zinc-400" /></Button>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-            <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest pl-1">Billed To</Label>
+      <div className="space-y-6 text-left">
+        <div className="flex justify-between items-center px-1">
+            <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Billed To</Label>
             <Button variant="ghost" className="h-auto p-0 text-[10px] font-black text-zinc-400 uppercase gap-1" onClick={()=>setShowAdvanced(!showAdvanced)}><Settings2 className="h-3 w-3" /> {showAdvanced ? 'Hide Settings' : 'Shop Settings'}</Button>
         </div>
         
@@ -270,7 +271,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         </div>
         <div className="space-y-4">
           {items.map((item: any, idx: number) => (
-            <div key={idx} className="bg-zinc-50/50 p-6 rounded-[2.5rem] border border-zinc-100 space-y-4 relative group shadow-sm hover:shadow-md transition-all">
+            <div key={idx} className="bg-zinc-50/50 p-6 rounded-[2.5rem] border border-zinc-100 space-y-4 relative group shadow-sm hover:shadow-md transition-all text-left">
               <Input value={item.desc} onChange={e=>updateItem(idx, 'desc', e.target.value)} placeholder="Item Name" className="h-12 bg-white border-zinc-200 font-black text-sm rounded-2xl shadow-sm uppercase" />
               <div className="grid grid-cols-4 gap-3">
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">HSN</span><Input value={item.hsn} onChange={e=>updateItem(idx,'hsn',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-bold" /></div>
@@ -315,9 +316,10 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
       <div className="flex justify-between items-start mb-6 text-[10.5pt]">
         <div className="font-bold tracking-tight uppercase">GSTIN : {shopDetails.gstin}</div>
         <div className="font-bold border-b-2 border-black px-8 pb-0.5 text-[12pt] tracking-widest uppercase">TAX INVOICE</div>
+        {/* REMOVED ORIGINAL/DUPLICATE/TRIPLICATE BOX AS REQUESTED */}
         <div className="w-[140px]"></div>
       </div>
-      <div className="text-center mb-10 mt-4">
+      <div className="text-center mb-10 mt-4 text-left">
         <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1>
         <p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p>
       </div>
@@ -383,7 +385,7 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
       </div>
       <div className="mt-12 border-t-2 border-black flex justify-between items-end pb-4 pt-10">
         <div className="flex-1 pr-14">
-          <div className="font-black uppercase text-[10pt] mb-3 underline decoration-black decoration-1 underline-offset-4">Total Invoice Value (In words) :</div>
+          <div className="font-black uppercase text-[10pt] mb-3 underline decoration-black decoration-1 underline-offset-4 text-left">Total Invoice Value (In words) :</div>
           <div className="border-b-2 border-dotted border-zinc-500 w-full h-[12mm] italic text-zinc-800 text-[14pt] font-black pt-1 uppercase flex items-center justify-center text-center leading-none">
             {shopDetails.totalInWords}
           </div>

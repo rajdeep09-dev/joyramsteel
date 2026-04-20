@@ -19,7 +19,8 @@ import {
   Plus,
   Loader2,
   X,
-  Layers
+  Layers,
+  Settings2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface BulkImportModalProps {
   isOpen: boolean;
@@ -39,7 +41,7 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
   const [step, setStep] = useState(1);
   const [rawText, setRawText] = useState("");
   const [processedProducts, setProcessedProducts] = useState<any[]>([]);
-  const [isProcessing, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Step 1: Parse Raw Text
   const handleParseData = () => {
@@ -71,12 +73,8 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
     toast.success(`Identified ${parsed.length} items`);
   };
 
-  const updateProductImage = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setProcessedProducts(prev => prev.map(p => p.id === id ? { ...p, image: url } : p));
-    }
+  const updateItemField = (id: string, field: string, value: any) => {
+    setProcessedProducts(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
   const handleFinalAdd = async () => {
@@ -137,7 +135,7 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
                 <Layers className="h-6 w-6" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight">Bulk Import</DialogTitle>
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Bulk Import</DialogTitle>
                 <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mt-1">Step {step} of 3</p>
               </div>
             </div>
@@ -153,9 +151,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6 h-full flex flex-col">
                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex gap-4">
                   <AlertCircle className="h-6 w-6 text-blue-600 shrink-0" />
-                  <div className="text-sm">
+                  <div className="text-sm text-left">
                     <p className="font-black text-blue-900 uppercase tracking-tighter">Instructions:</p>
-                    <p className="text-blue-700 font-medium">Enter items as: <span className="font-black text-blue-900">Name, Category, Quantity, MRP, MSP, Unit</span> (one per line). Unit is optional (default: PCS).</p>
+                    <p className="text-blue-700 font-medium leading-tight">Enter items as: <span className="font-black text-blue-900">Name, Category, Quantity, MRP, MSP, Unit</span> (one per line). Unit is optional (defaults to PCS).</p>
                   </div>
                 </div>
                 <Textarea 
@@ -175,41 +173,54 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {processedProducts.map((p) => (
-                    <div key={p.id} className="bg-white border border-zinc-100 p-5 rounded-3xl shadow-xl flex gap-5 relative overflow-hidden group">
-                      <div className="w-24 h-24 bg-zinc-50 rounded-2xl overflow-hidden relative shrink-0 border-2 border-dashed border-zinc-200">
-                        {p.image ? (
-                          <img src={p.image} className="w-full h-full object-cover" alt="preview" />
-                        ) : (
-                          <div className="h-full flex items-center justify-center text-zinc-300">
-                            <Camera className="h-8 w-8" />
-                          </div>
-                        )}
-                        <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => updateProductImage(p.id, e)} />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="font-black text-zinc-900 uppercase italic tracking-tight truncate">{p.name}</div>
-                        <div className="flex gap-2">
-                          <Badge className="bg-zinc-100 text-zinc-500 rounded-lg text-[9px] font-black uppercase tracking-widest">{p.category}</Badge>
-                          <Badge className="bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest">{p.qty} {p.unit?.toUpperCase()}</Badge>
+                    <div key={p.id} className="bg-white border border-zinc-100 p-5 rounded-3xl shadow-xl flex flex-col gap-4 relative overflow-hidden group">
+                      <div className="flex gap-5">
+                        <div className="w-20 h-20 bg-zinc-50 rounded-2xl overflow-hidden relative shrink-0 border-2 border-dashed border-zinc-200">
+                          {p.image ? (
+                            <img src={p.image} className="w-full h-full object-cover" alt="preview" />
+                          ) : (
+                            <div className="h-full flex items-center justify-center text-zinc-300">
+                              <Camera className="h-6 w-6" />
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if(file) updateItemField(p.id, 'image', URL.createObjectURL(file));
+                          }} />
                         </div>
-                        <div className="pt-2 flex justify-between items-end border-t border-zinc-50 mt-2">
-                          <div>
-                            <span className="text-[8px] font-black text-zinc-400 block uppercase">MRP</span>
-                            <span className="font-black text-zinc-900 text-sm">₹{p.mrp}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[8px] font-black text-zinc-400 block uppercase">MSP</span>
-                            <span className="font-black text-red-600 text-sm">₹{p.msp}</span>
+                        <div className="flex-1 space-y-1">
+                          <Input value={p.name} onChange={e=>updateItemField(p.id, 'name', e.target.value)} className="h-10 font-black text-zinc-900 uppercase italic tracking-tight border-none bg-transparent p-0 focus-visible:ring-0 shadow-none text-base" />
+                          <div className="flex gap-2">
+                             <Input value={p.category} onChange={e=>updateItemField(p.id, 'category', e.target.value)} className="h-6 w-24 bg-zinc-100 text-zinc-500 rounded-lg text-[9px] font-black uppercase tracking-widest border-none px-2 focus-visible:ring-0 shadow-none" />
+                             <Badge className="bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest">{p.qty} {p.unit?.toUpperCase()}</Badge>
                           </div>
                         </div>
+                        <button onClick={()=>setProcessedProducts(prev=>prev.filter(x=>x.id!==p.id))} className="text-zinc-200 hover:text-red-500 transition-colors">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button className="absolute top-2 right-2 p-2 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+
+                      <div className="grid grid-cols-3 gap-3 pt-3 border-t border-zinc-50">
+                        <div className="space-y-1 text-left">
+                          <span className="text-[8px] font-black text-zinc-400 block uppercase pl-1">Qty</span>
+                          <Input type="number" value={p.qty} onChange={e=>updateItemField(p.id, 'qty', parseFloat(e.target.value))} className="h-10 bg-zinc-50 border-zinc-100 rounded-xl font-bold" />
+                        </div>
+                        <div className="space-y-1 text-left">
+                          <span className="text-[8px] font-black text-zinc-400 block uppercase pl-1">Unit</span>
+                          <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-100 rounded-xl h-10">
+                             <Button variant="ghost" className={cn("rounded-lg h-full font-black text-[9px] p-0", p.unit === 'pcs' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400")} onClick={()=>updateItemField(p.id, 'unit', 'pcs')}>PCS</Button>
+                             <Button variant="ghost" className={cn("rounded-lg h-full font-black text-[9px] p-0", p.unit === 'kg' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400")} onClick={()=>updateItemField(p.id, 'unit', 'kg')}>KG</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-left">
+                          <span className="text-[8px] font-black text-zinc-400 block uppercase pl-1">MRP (₹)</span>
+                          <Input type="number" value={p.mrp} onChange={e=>updateItemField(p.id, 'mrp', parseFloat(e.target.value))} className="h-10 bg-zinc-50 border-zinc-100 rounded-xl font-black text-blue-600" />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-4 pt-6">
+                <div className="flex gap-4 pt-6 pb-12">
                   <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest border-2">Back</Button>
                   <Button onClick={() => setStep(3)} className="flex-2 w-[60%] h-16 rounded-2xl bg-zinc-900 text-white font-black uppercase tracking-widest shadow-2xl">
                     Final Review <ArrowRight className="ml-2 h-5 w-5" />
@@ -245,9 +256,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
                 </div>
 
                 <div className="flex gap-4 w-full pt-6">
-                  <Button variant="outline" disabled={isProcessing} onClick={() => setStep(2)} className="flex-1 h-20 rounded-3xl font-black uppercase tracking-widest border-2">Cancel</Button>
-                  <Button onClick={handleFinalAdd} disabled={isProcessing} className="flex-2 w-[70%] h-20 rounded-3xl bg-zinc-900 text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-zinc-900/40 active:scale-95 transition-all">
-                    {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" /> : "ADD TO INVENTORY"}
+                  <Button variant="outline" disabled={isLoading} onClick={() => setStep(2)} className="flex-1 h-20 rounded-3xl font-black uppercase tracking-widest border-2">Cancel</Button>
+                  <Button onClick={handleFinalAdd} disabled={isLoading} className="flex-2 w-[70%] h-20 rounded-3xl bg-zinc-900 text-white font-black uppercase tracking-[0.2em] shadow-2xl shadow-zinc-900/40 active:scale-95 transition-all">
+                    {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "ADD TO INVENTORY"}
                   </Button>
                 </div>
               </motion.div>

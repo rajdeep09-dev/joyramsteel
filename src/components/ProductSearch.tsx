@@ -20,8 +20,10 @@ export function ProductSearch({ onSelect, className, placeholder = "Search produ
   const [isOpen, setIsOpen] = useState(false);
 
   const catalog = useLiveQuery(async () => {
-    const products = await db.products.toArray();
-    const variants = await db.variants.toArray();
+    // Production logic: Filter out deleted products and variants
+    const products = await db.products.where('is_deleted').equals(0).toArray();
+    const variants = await db.variants.where('is_deleted').equals(0).toArray();
+    
     return variants.map(v => {
       const p = products.find(prod => prod.id === v.product_id);
       return {
@@ -97,7 +99,7 @@ export function ProductSearch({ onSelect, className, placeholder = "Search produ
                         </div>
                         <div className="text-left">
                           <div className="font-black text-base md:text-sm tracking-tight">{item.productName}</div>
-                          <div className="text-[10px] font-bold text-zinc-400 group-hover:text-white/40 uppercase tracking-widest">{item.size} &bull; {item.stock} LEFT</div>
+                          <div className="text-[10px] font-bold text-zinc-400 group-hover:text-white/40 uppercase tracking-widest">{item.size} &bull; {item.stock} {item.unit?.toUpperCase() || 'PCS'} LEFT</div>
                         </div>
                       </div>
                       <div className="font-black text-lg md:text-sm tracking-tighter">₹{item.base_price}</div>
