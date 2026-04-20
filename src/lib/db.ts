@@ -8,7 +8,7 @@ export interface Product {
   gst_rate?: number;
   created_at: string;
   updated_at: string;
-  is_deleted: number; // 0 or 1 for soft delete
+  is_deleted: number;
 }
 
 export interface Variant {
@@ -96,7 +96,7 @@ export interface DigitalBill {
   bill_no: string;
   date: string;
   customer_name: string;
-  data: string; // JSON string of full bill details
+  data: string;
   updated_at: string;
   is_deleted: number;
   sync_status: 'pending' | 'synced';
@@ -113,7 +113,8 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   digital_bills: EntityTable<DigitalBill, 'id'>;
 };
 
-db.version(7).stores({
+// V8: Added updated_at and sync_status to all indexes for robust cloud sync
+db.version(8).stores({
   products: 'id, name, category, updated_at, is_deleted', 
   variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit', 
   sales: 'id, date, sync_status, updated_at, is_deleted',
@@ -121,28 +122,19 @@ db.version(7).stores({
   customers: 'id, name, phone, status, updated_at, is_deleted',
   khata_transactions: 'id, customer_id, date, sync_status, updated_at, is_deleted',
   bills: 'id, supplier, status, updated_at, is_deleted',
-  digital_bills: 'id, type, bill_no, customer_name, date, sync_status, is_deleted'
+  digital_bills: 'id, type, bill_no, customer_name, date, sync_status, updated_at, is_deleted'
 });
 
-// Global error handler
 db.on('versionchange', function() {
   db.close();
-  if (typeof window !== 'undefined') {
-    window.location.reload();
-  }
-});
-
-db.on('blocked', () => {
-  console.error('Dexie database is blocked by another tab');
+  if (typeof window !== 'undefined') window.location.reload();
 });
 
 export const seedDatabase = async () => {
   try {
     const productsCount = await db.products.count();
-    const now = new Date().toISOString();
     if (productsCount === 0) {
-      // Seeding only if empty
-      console.log("Database fresh. Seeding initial data...");
+      console.log("Fresh database detected.");
     }
   } catch (err) {
     console.error("Dexie seeding failed:", err);

@@ -10,13 +10,10 @@ export function SyncEngine() {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Periodic Sync (Every 5 seconds)
     const syncInterval = setInterval(async () => {
       if (isSyncing.current) return;
       
-      // Skip if placeholder credentials
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder') || 
-          !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
         return;
       }
 
@@ -35,7 +32,7 @@ export function SyncEngine() {
         ];
 
         for (const table of tables) {
-          // --- A. PULL CHANGES FROM CLOUD ---
+          // 1. PULL: Fetch updates from cloud
           let pullQuery = supabase.from(table.name).select('*');
           if (lastSyncTime) {
             pullQuery = pullQuery.gt('updated_at', lastSyncTime);
@@ -46,24 +43,19 @@ export function SyncEngine() {
           if (!pullError && cloudChanges && cloudChanges.length > 0) {
             for (const cloudItem of cloudChanges) {
               const localItem = await (table.db as any).get(cloudItem.id);
-              // Smart Merge: Only update if cloud version is newer
               if (!localItem || new Date(cloudItem.updated_at) > new Date(localItem.updated_at)) {
-                await (table.db as any).put(cloudItem);
+                await (table.db as any).put({ ...cloudItem, sync_status: 'synced' });
               }
             }
           }
 
-          // --- B. PUSH LOCAL CHANGES TO CLOUD ---
-          // Push items that are pending OR updated locally after our last sync
-          const localItems = await (table.db as any).toArray();
-          const toPush = localItems.filter((item: any) => {
-             if (item.sync_status === 'pending') return true;
-             if (!lastSyncTime) return true;
-             return new Date(item.updated_at) > new Date(lastSyncTime);
-          });
+          // 2. PUSH: Send local changes to cloud
+          const toPush = await (table.db as any)
+            .where('sync_status').equals('pending')
+            .or('updated_at').above(lastSyncTime || '1970-01-01')
+            .toArray();
 
           if (toPush.length > 0) {
-            // Remove local-only 'sync_status' before pushing to Supabase
             const cleanedPush = toPush.map((item: any) => {
               const { sync_status, ...rest } = item;
               return rest;
@@ -72,7 +64,6 @@ export function SyncEngine() {
             const { error: pushError } = await supabase.from(table.name).upsert(cleanedPush);
             
             if (!pushError) {
-              // Mark as synced locally
               const syncedItems = toPush.map((item: any) => ({ ...item, sync_status: 'synced' }));
               await (table.db as any).bulkPut(syncedItems);
             }
@@ -86,7 +77,7 @@ export function SyncEngine() {
         }
 
       } catch (err) {
-        console.error("Critical Sync Error:", err);
+        console.error("Sync Failure:", err);
       } finally {
         isSyncing.current = false;
       }

@@ -50,8 +50,8 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
     { itemName: "STEEL KITCHEN WARE ITEMS", itemHsn: "7323", itemQty: "1.00", unit: "pcs", itemAmount: "10,000.00" }
   ]);
   const [details, setDetails] = useState({
-    no: "7615 9627 7617",
-    date: new Date().toLocaleDateString('en-GB') + " 04:49 PM",
+    no: `EW-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
+    date: new Date().toISOString(), // Use ISO Date
     fromName: "JOY RAM STEEL",
     fromGstin: "16ENCPD2885R1ZE",
     fromAddress: "DHAJANAGAR, UDAIPUR, TRIPURA",
@@ -108,8 +108,8 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
     if (items.length === 0) return;
     try {
       const now = new Date().toISOString();
-      await db.digital_bills.add({
-        id: uuidv4(),
+      await db.digital_bills.put({
+        id: details.no || uuidv4(),
         type: 'eway',
         bill_no: details.no,
         date: details.date,
@@ -119,8 +119,8 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
         is_deleted: 0,
         sync_status: 'pending'
       });
-      toast.success("Saved to History");
-    } catch { toast.error("Failed to save"); }
+      toast.success("eWay Bill Synced to Archives");
+    } catch { toast.error("Failed to sync bill"); }
   };
 
   const exportDoc = async (type: 'pdf' | 'img') => {
@@ -142,8 +142,6 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent fullScreen className="bg-zinc-950">
-        
-        {/* MOBILE VIEW */}
         <div className="md:hidden flex flex-col h-full w-full overflow-hidden">
           <Tabs defaultValue="edit" className="flex-1 flex flex-col h-full overflow-hidden">
             <div className="bg-zinc-900 border-b border-white/10 p-3 shrink-0">
@@ -163,7 +161,6 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
           </Tabs>
         </div>
 
-        {/* DESKTOP VIEW */}
         <div className="hidden md:flex flex-row h-full w-full overflow-hidden bg-zinc-950">
           <div className="w-[480px] h-full bg-white shrink-0 border-r border-zinc-100 overflow-y-auto p-10 scrollbar-hide">
              <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} saveToHistory={saveToHistory} />
@@ -174,7 +171,6 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
              </div>
           </div>
         </div>
-
       </DialogContent>
     </Dialog>
   );
@@ -185,7 +181,7 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center text-left">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black italic shadow-xl shadow-blue-600/20">E</div>
           <div><h2 className="text-2xl font-black italic tracking-tighter uppercase leading-none">eWay Bill</h2><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">Logistics Engine</p></div>
@@ -316,19 +312,19 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
 const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
   return (
     <div ref={ref} className="bg-white shadow-[0_60px_150px_rgba(0,0,0,0.6)] flex flex-col p-[15mm] shrink-0" style={{ width: '210mm', minHeight: '297mm', color: '#000', fontFamily: 'sans-serif' }}>
-      <div className="flex justify-between items-start mb-10">
+      <div className="flex justify-between items-start mb-10 text-left">
         <div className="flex items-center gap-6">
           <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-zinc-50 shadow-xl shrink-0">
-            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+            <img src="/joyramlogo.png" alt="Logo" className="h-full w-full object-cover" />
           </div>
-          <h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic text-left">e-Way Bill</h1>
+          <h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic">e-Way Bill</h1>
         </div>
         <div className="border-4 border-black p-2">
           <QrCode className="h-20 w-20 text-zinc-900" />
         </div>
       </div>
       <div className="space-y-8 text-left">
-        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{details.date}</span></div><div>Mode: {details.mode}</div><div>Type: {details.txnType}</div><div>Bill Type: {details.type}</div><div>Distance: {details.distance}</div></div></section>
+        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{new Date(details.date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div><div>Mode: {details.mode}</div><div>Type: {details.txnType}</div><div>Bill Type: {details.type}</div><div>Distance: {details.distance}</div></div></section>
         
         <section>
           <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">2. Address Details</div>
@@ -368,7 +364,6 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
                   <td className="p-2 text-right pr-4 font-black not-italic">₹{item.itemAmount}</td>
                 </tr>
               ))}
-              {/* Fill empty rows to maintain look */}
               {items.length < 4 && [...Array(4 - items.length)].map((_, i) => (
                 <tr key={`e-${i}`} className="h-[10mm] border-b border-zinc-100 last:border-0">
                   <td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td></td>

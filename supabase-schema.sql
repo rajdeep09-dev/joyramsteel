@@ -1,6 +1,5 @@
--- FINAL PRODUCTION SCHEMA (v7) for Joy Ram Steel (VyaparSyncDB)
--- Run this in your Supabase SQL Editor.
--- This script RESETs the database to a fresh state.
+-- FINAL PRODUCTION SCHEMA (v8) for Joy Ram Steel (VyaparSyncDB)
+-- Run this in your Supabase SQL Editor to RESET your database.
 
 -- Clean start
 DROP TABLE IF EXISTS digital_bills CASCADE;
@@ -64,10 +63,9 @@ CREATE TABLE sales (
     split_upi NUMERIC,
     split_khata NUMERIC,
     customer_id TEXT REFERENCES customers(id),
-    date TEXT NOT NULL,
+    date TEXT NOT NULL, -- ISO STRING
     updated_at TEXT NOT NULL,
-    is_deleted INTEGER DEFAULT 0,
-    sync_status TEXT NOT NULL DEFAULT 'synced'
+    is_deleted INTEGER DEFAULT 0
 );
 
 -- 5. Sale Items
@@ -101,27 +99,26 @@ CREATE TABLE khata_transactions (
     amount NUMERIC NOT NULL,
     type TEXT NOT NULL,
     payment_method TEXT NOT NULL,
-    date TEXT NOT NULL,
+    date TEXT NOT NULL, -- ISO STRING
     proof_image_url TEXT,
     notes TEXT,
     updated_at TEXT NOT NULL,
-    is_deleted INTEGER DEFAULT 0,
-    sync_status TEXT NOT NULL DEFAULT 'synced'
+    is_deleted INTEGER DEFAULT 0
 );
 
--- 8. Digital Bills (Generated History)
+-- 8. Digital Bills (Saved GST/eWay History)
 CREATE TABLE digital_bills (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL, -- 'gst' or 'eway'
     bill_no TEXT,
     customer_name TEXT,
-    date TEXT NOT NULL,
-    data TEXT NOT NULL, -- Full JSON content
+    date TEXT NOT NULL, -- ISO STRING
+    data TEXT NOT NULL, -- Full JSON
     updated_at TEXT NOT NULL,
     is_deleted INTEGER DEFAULT 0
 );
 
--- Disable Row Level Security (RLS) for all tables
+-- Disable Row Level Security (RLS)
 ALTER TABLE products DISABLE ROW LEVEL SECURITY;
 ALTER TABLE variants DISABLE ROW LEVEL SECURITY;
 ALTER TABLE customers DISABLE ROW LEVEL SECURITY;

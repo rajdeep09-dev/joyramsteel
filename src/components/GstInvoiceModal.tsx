@@ -40,16 +40,18 @@ interface GstInvoiceModalProps {
   onClose: () => void;
   initialItems?: any[];
   initialReceiver?: any;
-  viewOnlyData?: any; // For loading from history
+  viewOnlyData?: any;
 }
 
 export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver, viewOnlyData }: GstInvoiceModalProps) {
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState([{ desc: "", hsn: "7323", qty: "1", unit: "pcs", finalRate: "", gstRate: "18", taxableValue: 0, cgst: 0, sgst: 0, total: 0 }]);
   const [receiver, setReceiver] = useState({ name: "", address: "", gstin: "" });
-  const [invoiceDetails, setInvoiceDetails] = useState({ no: "", date: new Date().toISOString().split('T')[0] });
+  const [invoiceDetails, setInvoiceDetails] = useState({ 
+    no: `JR-${Math.floor(Math.random() * 10000)}`, 
+    date: new Date().toISOString() 
+  });
   
-  // Advanced Editable Details
   const [shopDetails, setShopDetails] = useState({
     name: "JOY RAM STEEL",
     address: "Dhajanagar, Udaipur, Gomati Tripura, Pin - 799114",
@@ -59,7 +61,6 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
     summaryHsn: "-"
   });
 
-  // Pre-fill from POS or History
   React.useEffect(() => {
     if (isOpen) {
       if (viewOnlyData) {
@@ -142,13 +143,13 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
 
   const saveToHistory = async () => {
     if (!receiver.name || items.length === 0) {
-      toast.error("Add customer name and items to save");
+      toast.error("Enter receiver details first");
       return;
     }
     try {
       const now = new Date().toISOString();
-      await db.digital_bills.add({
-        id: uuidv4(),
+      await db.digital_bills.put({
+        id: invoiceDetails.no || uuidv4(),
         type: 'gst',
         bill_no: invoiceDetails.no,
         date: invoiceDetails.date,
@@ -158,10 +159,8 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
         is_deleted: 0,
         sync_status: 'pending'
       });
-      toast.success("Saved to History");
-    } catch {
-      toast.error("Failed to save");
-    }
+      toast.success("Invoice Synced to Archives");
+    } catch { toast.error("Failed to sync invoice"); }
   };
 
   const exportDoc = async (type: 'pdf' | 'img') => {
@@ -183,9 +182,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent fullScreen className="bg-zinc-950">
-        
-        {/* MOBILE: Tabs */}
-        <div className="md:hidden flex flex-col h-full w-full overflow-hidden">
+        <div className="md:hidden flex flex-col h-full w-full overflow-hidden text-left">
           <Tabs defaultValue="edit" className="flex-1 flex flex-col h-full overflow-hidden">
             <TabsList className="grid grid-cols-2 h-16 bg-zinc-900/50 border-b border-white/10 p-2 shrink-0">
               <TabsTrigger value="edit" className="rounded-xl font-black text-[10px] uppercase tracking-widest">1. Data</TabsTrigger>
@@ -202,7 +199,6 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
           </Tabs>
         </div>
 
-        {/* DESKTOP: Side-by-Side */}
         <div className="hidden md:flex flex-row h-full w-full overflow-hidden bg-zinc-950">
           <div className="w-[500px] h-full bg-white shrink-0 border-r border-zinc-200 overflow-y-auto p-10 scrollbar-hide">
              <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} shopDetails={shopDetails} setShopDetails={setShopDetails} saveToHistory={saveToHistory} />
@@ -213,7 +209,6 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
              </div>
           </div>
         </div>
-
       </DialogContent>
     </Dialog>
   );
@@ -223,7 +218,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-10 text-left">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-zinc-900 text-white flex items-center justify-center font-black italic shadow-xl">G</div>
@@ -235,7 +230,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         </div>
       </div>
 
-      <div className="space-y-6 text-left">
+      <div className="space-y-6">
         <div className="flex justify-between items-center px-1">
             <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Billed To</Label>
             <Button variant="ghost" className="h-auto p-0 text-[10px] font-black text-zinc-400 uppercase gap-1" onClick={()=>setShowAdvanced(!showAdvanced)}><Settings2 className="h-3 w-3" /> {showAdvanced ? 'Hide Settings' : 'Shop Settings'}</Button>
@@ -243,32 +238,14 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         
         {showAdvanced && (
            <div className="p-5 bg-zinc-50 rounded-3xl border border-zinc-100 space-y-4 mb-4">
-              <div className="space-y-2">
-                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Name</span>
-                <Input value={shopDetails.name} onChange={e=>setShopDetails({...shopDetails, name:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" />
-              </div>
-              <div className="space-y-2">
-                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Address</span>
-                <Input value={shopDetails.address} onChange={e=>setShopDetails({...shopDetails, address:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" />
-              </div>
-              <div className="space-y-2">
-                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop GSTIN</span>
-                <Input value={shopDetails.gstin} onChange={e=>setShopDetails({...shopDetails, gstin:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" />
-              </div>
+              <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Name</span><Input value={shopDetails.name} onChange={e=>setShopDetails({...shopDetails, name:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" /></div>
+              <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop Address</span><Input value={shopDetails.address} onChange={e=>setShopDetails({...shopDetails, address:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold" /></div>
+              <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Shop GSTIN</span><Input value={shopDetails.gstin} onChange={e=>setShopDetails({...shopDetails, gstin:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black uppercase" /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Summary HSN</span>
-                  <Input value={shopDetails.summaryHsn} onChange={e=>setShopDetails({...shopDetails, summaryHsn:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" />
-                </div>
-                <div className="space-y-2">
-                  <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">IGST Value</span>
-                  <Input value={shopDetails.igst} onChange={e=>setShopDetails({...shopDetails, igst:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" />
-                </div>
+                <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Summary HSN</span><Input value={shopDetails.summaryHsn} onChange={e=>setShopDetails({...shopDetails, summaryHsn:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" /></div>
+                <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">IGST Value</span><Input value={shopDetails.igst} onChange={e=>setShopDetails({...shopDetails, igst:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-black text-center" /></div>
               </div>
-              <div className="space-y-2">
-                <span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Amount in Words</span>
-                <Input value={shopDetails.totalInWords} onChange={e=>setShopDetails({...shopDetails, totalInWords:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold italic" />
-              </div>
+              <div className="space-y-2"><span className="text-[8px] font-black text-zinc-400 uppercase pl-1">Amount in Words</span><Input value={shopDetails.totalInWords} onChange={e=>setShopDetails({...shopDetails, totalInWords:e.target.value})} className="h-10 rounded-xl bg-white border-zinc-200 font-bold italic" /></div>
            </div>
         )}
 
@@ -279,7 +256,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Invoice No</Label><Input value={invoiceDetails.no} onChange={e=>setInvoiceDetails({...invoiceDetails, no:e.target.value})} placeholder="No." className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-center uppercase" /></div>
-          <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Date</Label><Input type="date" value={invoiceDetails.date} onChange={e=>setInvoiceDetails({...invoiceDetails, date:e.target.value})} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-bold" /></div>
+          <div className="space-y-2"><Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Date</Label><Input type="date" value={invoiceDetails.date.split('T')[0]} onChange={e=>setInvoiceDetails({...invoiceDetails, date:new Date(e.target.value).toISOString()})} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-bold" /></div>
         </div>
       </div>
 
@@ -287,24 +264,17 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         <div className="flex justify-between items-center px-1">
           <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Inventory List</Label>
           <DropdownMenu>
-            <DropdownMenuTrigger render={
-              <Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1">
-                <Layout className="h-3 w-3" /> Quick Dropdown
-              </Button>
-            } />
-            <DropdownMenuContent className="max-h-[400px] overflow-y-auto rounded-[2rem] p-3 min-w-[300px] shadow-[0_40px_80px_rgba(0,0,0,0.2)] border-zinc-100 bg-white z-[6000]">
-              <div className="p-3 border-b border-zinc-50 mb-2"><p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Select Product</p></div>
+            <DropdownMenuTrigger render={<Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1"><Layout className="h-3 w-3" /> Quick Dropdown</Button>} />
+            <DropdownMenuContent className="max-h-[400px] overflow-y-auto rounded-[2rem] p-3 min-w-[300px] shadow-2xl border-zinc-100 bg-white z-[6000] flex flex-col gap-1">
               {catalog?.map((p: any) => (
-                <DropdownMenuItem key={p.id} onClick={() => addItem(p)} className="rounded-2xl h-14 font-black text-xs flex justify-between cursor-pointer hover:bg-zinc-50 px-4">
-                  <span className="truncate">{p.productName} ({p.size})</span> <span className="text-emerald-600 shrink-0">₹{p.base_price}</span>
-                </DropdownMenuItem>
+                <DropdownMenuItem key={p.id} onClick={() => addItem(p)} className="rounded-2xl h-14 font-black text-xs flex justify-between cursor-pointer px-4">{p.productName} ({p.size}) <span className="text-emerald-600">₹{p.base_price}</span></DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         <div className="flex gap-2">
           <ProductSearch onSelect={addItem} className="flex-1" placeholder="Type to search..." />
-          <Button onClick={()=>addItem()} variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-2 border-zinc-100 bg-zinc-50 hover:bg-white"><Plus className="h-6 w-6" /></Button>
+          <Button onClick={()=>addItem()} variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-2 border-zinc-100 bg-zinc-50 hover:bg-white shadow-sm"><Plus className="h-6 w-6" /></Button>
         </div>
         <div className="space-y-4">
           {items.map((item: any, idx: number) => (
@@ -313,13 +283,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
               <div className="grid grid-cols-4 gap-3">
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">HSN</span><Input value={item.hsn} onChange={e=>updateItem(idx,'hsn',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-bold" /></div>
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Qty</span><Input type="number" value={item.qty} onChange={e=>updateItem(idx,'qty',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-black" /></div>
-                <div className="space-y-1">
-                  <span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Unit</span>
-                  <select value={item.unit} onChange={e=>updateItem(idx, 'unit', e.target.value)} className="w-full h-10 bg-white border border-zinc-200 text-xs rounded-xl font-black focus:ring-0 outline-none px-2 uppercase shadow-sm">
-                    <option value="pcs">PCS</option>
-                    <option value="kg">KG</option>
-                  </select>
-                </div>
+                <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Unit</span><select value={item.unit} onChange={e=>updateItem(idx, 'unit', e.target.value)} className="w-full h-10 bg-white border border-zinc-200 text-xs rounded-xl font-black focus:ring-0 outline-none px-2 uppercase shadow-sm"><option value="pcs">PCS</option><option value="kg">KG</option></select></div>
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Gst%</span><Input type="number" value={item.gstRate} onChange={e=>updateItem(idx,'gstRate',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-black text-green-600" /></div>
               </div>
               <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Price Per {item.unit?.toUpperCase() || 'UNIT'}</span><Input type="number" value={item.finalRate} onChange={e=>updateItem(idx,'finalRate',e.target.value)} className="h-12 bg-white border border-zinc-200 text-sm rounded-2xl font-black text-blue-600" /></div>
@@ -330,14 +294,10 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
       </div>
 
       <div className="mt-auto grid grid-cols-2 gap-4 pb-10">
-        <Button onClick={()=>window.print()} variant="outline" className="h-20 rounded-[1.5rem] border-2 border-zinc-100 font-black tracking-widest text-[10px] uppercase"><Printer className="h-6 w-6 mr-3 text-zinc-400" /> Print</Button>
+        <Button onClick={()=>window.print()} variant="outline" className="h-20 rounded-[1.5rem] border-2 border-zinc-100 font-black tracking-widest text-[10px] uppercase shadow-sm"><Printer className="h-6 w-6 mr-3 text-zinc-400" /> Print</Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={
-            <Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase">
-              <Download className="h-6 w-6 mr-3 text-zinc-400" /> Export
-            </Button>
-          } />
-          <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
+          <DropdownMenuTrigger render={<Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase"><Download className="h-6 w-6 mr-3 text-zinc-400" /> Export</Button>} />
+          <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000] flex flex-col gap-1">
              <DropdownMenuItem onClick={()=>exportDoc('img')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><ImageIcon className="h-6 w-6 text-blue-600" /> Image</DropdownMenuItem>
              <DropdownMenuItem onClick={()=>exportDoc('pdf')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><FileText className="h-6 w-6 text-red-600" /> PDF</DropdownMenuItem>
           </DropdownMenuContent>
@@ -350,20 +310,14 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
 const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, totalTaxable, totalCgst, totalSgst, grandTotal, shopDetails }: any, ref: any) => {
   return (
     <div ref={ref} className="bg-white shadow-[0_60px_150px_rgba(0,0,0,0.6)] flex flex-col p-[15mm] text-black shrink-0" style={{ width: '210mm', minHeight: '297mm', fontFamily: "'Times New Roman', serif" }}>
-      <div className="flex justify-between items-start mb-6 text-[10.5pt]">
+      <div className="flex justify-between items-start mb-6 text-[10.5pt] text-left">
         <div className="font-bold tracking-tight uppercase">GSTIN : {shopDetails.gstin}</div>
         <div className="font-bold border-b-2 border-black px-8 pb-0.5 text-[12pt] tracking-widest uppercase">TAX INVOICE</div>
-        {/* REMOVED ORIGINAL/DUPLICATE/TRIPLICATE BOX AS REQUESTED */}
         <div className="w-[140px]"></div>
       </div>
       <div className="text-center mb-10 mt-4 text-left flex items-center gap-6">
-        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-50 shadow-2xl shrink-0">
-          <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
-        </div>
-        <div>
-          <h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1>
-          <p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p>
-        </div>
+        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-50 shadow-2xl shrink-0"><img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" /></div>
+        <div><h1 className="text-[48pt] font-black tracking-tighter uppercase italic leading-[0.9] inline-block">{shopDetails.name}</h1><p className="text-[13pt] font-bold mt-3 tracking-wide">{shopDetails.address}</p></div>
       </div>
       <div className="flex justify-between mb-8 border-t-2 border-black pt-5 text-[11pt] leading-relaxed text-left">
         <div className="flex-1 space-y-2.5">
@@ -372,9 +326,9 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
           <div className="flex gap-2"><span>Address :</span> <span className="font-bold italic flex-1 uppercase">{receiver.address || "______________________________________________________"}</span></div>
           <div className="flex gap-2 mt-4"><span>GSTIN / Unique ID :</span> <span className="font-black uppercase tracking-widest text-[12pt]">{receiver.gstin || "____________________"}</span></div>
         </div>
-        <div className="w-[75mm] space-y-3 pl-6 border-l-2 border-black">
+        <div className="w-[75mm] space-y-3 pl-6 border-l-2 border-black text-left">
           <div className="flex justify-between items-center"><span>Invoice No. :</span> <span className="font-black text-[12pt] uppercase">{invoiceDetails.no || "N/A"}</span></div>
-          <div className="flex justify-between items-center border-b border-zinc-300 pb-1"><span>Date :</span> <span className="font-black text-[12pt]">{invoiceDetails.date ? new Date(invoiceDetails.date).toLocaleDateString('en-GB') : ""}</span></div>
+          <div className="flex justify-between items-center border-b border-zinc-300 pb-1"><span>Date :</span> <span className="font-black text-[12pt]">{new Date(invoiceDetails.date).toLocaleDateString('en-GB')}</span></div>
         </div>
       </div>
       <table className="w-full border-collapse border-2 border-black mb-8 text-[11pt]">
@@ -390,7 +344,7 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
               <td className="text-right pr-2 text-[12pt] font-black">{item.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             </tr>
           ))}
-          {[...Array(Math.max(0, 10 - items.length))].map((_, i) => (
+          {[...Array(Math.max(0, 8 - items.length))].map((_, i) => (
             <tr key={`empty-${i}`} className="border-b border-zinc-100 h-[10mm]"><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td></td></tr>
           ))}
         </tbody>
@@ -398,24 +352,8 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
       <div className="flex gap-8 mt-auto pt-4 text-right font-black uppercase">
         <div className="flex-1">
           <table className="w-full border-2 border-black text-[9.5pt]">
-            <thead>
-              <tr className="border-b-2 border-black bg-zinc-50">
-                <th className="border-r-2 border-black">HSN Code</th>
-                <th className="border-r-2 border-black">Taxable Value</th>
-                <th className="border-r-2 border-black text-blue-700">CGST (9%)</th>
-                <th className="border-r-2 border-black text-blue-700">SGST (9%)</th>
-                <th className="text-blue-900">IGST</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="h-[10mm] font-black">
-                <td className="border-r-2 border-black text-center">{shopDetails.summaryHsn}</td>
-                <td className="border-r-2 border-black pr-2">{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black pr-2 text-blue-700">{totalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black pr-2 text-blue-700">{totalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                <td className="pr-2 text-blue-900">{shopDetails.igst}</td>
-              </tr>
-            </tbody>
+            <thead><tr className="border-b-2 border-black bg-zinc-50"><th className="border-r-2 border-black">HSN Code</th><th className="border-r-2 border-black">Taxable Value</th><th className="border-r-2 border-black text-blue-700">CGST (9%)</th><th className="border-r-2 border-black text-blue-700">SGST (9%)</th><th className="text-blue-900">IGST</th></tr></thead>
+            <tbody><tr className="h-[10mm] font-black"><td className="border-r-2 border-black text-center">{shopDetails.summaryHsn}</td><td className="border-r-2 border-black pr-2">{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td><td className="border-r-2 border-black pr-2 text-blue-700">{totalCgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td><td className="border-r-2 border-black pr-2 text-blue-700">{totalSgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td><td className="pr-2 text-blue-900">{shopDetails.igst}</td></tr></tbody>
           </table>
         </div>
         <div className="w-[80mm] border-2 border-black p-5 space-y-3 bg-zinc-50/50">
@@ -426,16 +364,8 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
         </div>
       </div>
       <div className="mt-12 border-t-2 border-black flex justify-between items-end pb-4 pt-10">
-        <div className="flex-1 pr-14">
-          <div className="font-black uppercase text-[10pt] mb-3 underline decoration-black decoration-1 underline-offset-4 text-left">Total Invoice Value (In words) :</div>
-          <div className="border-b-2 border-dotted border-zinc-500 w-full h-[12mm] italic text-zinc-800 text-[14pt] font-black pt-1 uppercase flex items-center justify-center text-center leading-none">
-            {shopDetails.totalInWords}
-          </div>
-        </div>
-        <div className="text-center min-w-[65mm]">
-          <div className="font-black uppercase text-[10pt] mb-16 tracking-tight">For {shopDetails.name}</div>
-          <div className="font-black uppercase text-[11pt] border-t-2 border-black pt-2 tracking-[0.2em] italic">Proprietor</div>
-        </div>
+        <div className="flex-1 pr-14"><div className="font-black uppercase text-[10pt] mb-3 underline decoration-black decoration-1 underline-offset-4 text-left">Total Invoice Value (In words) :</div><div className="border-b-2 border-dotted border-zinc-500 w-full h-[12mm] italic text-zinc-800 text-[14pt] font-black pt-1 uppercase flex items-center justify-center text-center leading-none">{shopDetails.totalInWords}</div></div>
+        <div className="text-center min-w-[65mm]"><div className="font-black uppercase text-[10pt] mb-16 tracking-tight">For {shopDetails.name}</div><div className="font-black uppercase text-[11pt] border-t-2 border-black pt-2 tracking-[0.2em] italic">Proprietor</div></div>
       </div>
     </div>
   );
