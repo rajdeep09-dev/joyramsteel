@@ -296,87 +296,139 @@ export default function POS() {
         </Tabs>
       </Card>
 
-      {/* Cart Panel */}
-      <div className="w-full lg:w-[480px] flex flex-col gap-8 shrink-0">
-        <Card className="flex-1 border-none shadow-2xl bg-white/70 backdrop-blur-3xl rounded-[3rem] flex flex-col min-h-[450px]">
-          <div className="p-8 border-b border-zinc-50 bg-zinc-50/20 flex justify-between items-center rounded-t-[3rem]">
-            <h3 className="font-black text-2xl text-zinc-900 flex items-center gap-4 tracking-tighter italic">
-              <div className="p-3 bg-zinc-900 rounded-2xl text-white shadow-xl shadow-zinc-900/20"><ShoppingCart className="h-6 w-6" /></div> MY CART
-            </h3>
+      {/* Cart & Checkout Panel */}
+      <div className="w-full lg:w-[520px] flex flex-col gap-6 shrink-0 h-full">
+        {/* Main Cart Container */}
+        <Card className="flex-1 border-none shadow-[0_50px_100px_-20px_rgba(0,0,0,0.12)] bg-white/80 backdrop-blur-3xl rounded-[3.5rem] flex flex-col min-h-0 overflow-hidden border border-white/40">
+          {/* Cart Header */}
+          <div className="p-8 pb-6 flex justify-between items-center relative z-10">
+            <div className="space-y-1">
+              <h3 className="font-black text-3xl text-zinc-900 flex items-center gap-3 tracking-tighter italic">
+                <ShoppingCart className="h-8 w-8 text-zinc-900" /> ACTIVE ORDER
+              </h3>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] pl-1">Joy Ram Steel Terminal</p>
+            </div>
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleParkCart}
                 disabled={cart.length === 0}
-                className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all"
+                className="h-12 w-12 rounded-2xl bg-blue-500/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center shadow-inner disabled:opacity-20"
               >
-                <ParkingMeter className="h-5 w-5" />
-              </Button>
-              <Badge className="bg-zinc-900 text-white font-black px-5 py-2.5 text-xs rounded-2xl shadow-2xl border-none">{cart.length} ITEMS</Badge>
+                <ParkingMeter className="h-6 w-6" />
+              </motion.button>
+              <div className="bg-zinc-900 text-white font-black px-6 py-3 text-sm rounded-[1.25rem] shadow-2xl border-none italic tracking-tighter">
+                {cart.length} ITEMS
+              </div>
             </div>
           </div>
           
-          {/* Parked Carts List */}
-          {parkedCarts && parkedCarts.length > 0 && (
-            <div className="px-8 py-4 bg-blue-50/50 border-b border-blue-100 flex gap-4 overflow-x-auto scrollbar-hide shrink-0">
-              {parkedCarts.map(p => (
-                <button 
-                  key={p.id} 
-                  onClick={() => handleResumeCart(p)}
-                  className="shrink-0 flex items-center gap-3 bg-white border border-blue-200 px-4 py-2.5 rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-95 group"
-                >
-                  <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center text-white">
-                    <PlayCircle className="h-4 w-4" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-[10px] font-black uppercase text-zinc-900 tracking-tight leading-none truncate w-24 italic">{p.customer_name}</div>
-                    <div className="text-[8px] font-bold text-blue-600 uppercase mt-1">₹{p.total.toLocaleString()} &bull; {p.items.length} items</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Parked Carts List (Elite Horizontal) */}
+          <AnimatePresence>
+            {parkedCarts && parkedCarts.length > 0 && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="px-8 py-4 bg-zinc-900/5 border-y border-zinc-100 flex gap-4 overflow-x-auto scrollbar-hide shrink-0 items-center"
+              >
+                <span className="text-[9px] font-black uppercase text-zinc-400 rotate-180 [writing-mode:vertical-lr] shrink-0">PARKED</span>
+                {parkedCarts.map(p => (
+                  <motion.button 
+                    layout
+                    key={p.id} 
+                    onClick={() => handleResumeCart(p)}
+                    whileHover={{ x: 4 }}
+                    className="shrink-0 flex items-center gap-4 bg-white border border-zinc-200 px-5 py-3 rounded-2xl shadow-sm hover:shadow-xl hover:border-zinc-900 transition-all group"
+                  >
+                    <div className="h-10 w-10 rounded-xl bg-zinc-900 flex items-center justify-center text-white shadow-lg">
+                      <PlayCircle className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-[11px] font-black uppercase text-zinc-900 tracking-tight leading-none italic">{p.customer_name}</div>
+                      <div className="text-[9px] font-bold text-blue-600 uppercase mt-1">₹{p.total.toLocaleString()}</div>
+                    </div>
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
           
-          <ScrollArea className="flex-1 p-8">
-            <AnimatePresence mode="popLayout">
+          {/* Cart Scroll Area (Elite List) */}
+          <ScrollArea className="flex-1 px-8 py-4">
+            <AnimatePresence mode="popLayout" initial={false}>
               {cart.length === 0 ? (
-                <motion.div initial={{opacity:0}} animate={{opacity:1}} className="h-full flex flex-col items-center justify-center text-zinc-300 py-32 gap-6 opacity-30">
-                  <div className="p-10 bg-zinc-50 rounded-full shadow-inner"><ShoppingCart className="h-20 w-20" /></div>
-                  <p className="font-black text-sm uppercase tracking-[0.3em]">The cart is hungry</p>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="h-full flex flex-col items-center justify-center text-zinc-300 py-32 gap-6 opacity-40"
+                >
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-zinc-200 rounded-full blur-3xl opacity-20 animate-pulse" />
+                    <div className="p-12 bg-white rounded-full shadow-inner relative z-10 border border-zinc-50"><ShoppingCart className="h-24 w-24" /></div>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="font-black text-lg uppercase tracking-[0.2em] text-zinc-400">Cart is Empty</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Scan an item to begin billing</p>
+                  </div>
                 </motion.div>
               ) : (
-                <div className="space-y-6">
-                  {cart.map(item => (
-                    <motion.div key={item.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white/80 backdrop-blur-xl border border-zinc-50 rounded-[2rem] p-5 shadow-2xl shadow-zinc-100/50 flex items-center gap-5 group relative overflow-hidden">
-                      <div className="h-16 w-16 rounded-2xl bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center overflow-hidden">
-                        {item.image ? <img src={item.image} className="object-cover mix-blend-multiply" /> : <Package className="h-6 w-6 text-zinc-200" />}
+                <div className="space-y-4 pb-10">
+                  {cart.map((item, idx) => (
+                    <motion.div 
+                      key={item.id} 
+                      layout 
+                      initial={{ opacity: 0, x: 20 }} 
+                      animate={{ opacity: 1, x: 0 }} 
+                      transition={{ delay: idx * 0.05 }}
+                      exit={{ opacity: 0, scale: 0.9 }} 
+                      className="bg-white border border-zinc-100/50 rounded-[2.25rem] p-5 shadow-xl shadow-zinc-100/20 flex items-center gap-5 group relative transition-all hover:shadow-2xl hover:border-zinc-200"
+                    >
+                      <div className="h-20 w-20 rounded-[1.5rem] bg-zinc-50 shrink-0 shadow-inner flex items-center justify-center overflow-hidden border border-zinc-100 group-hover:scale-105 transition-transform duration-500">
+                        {item.image ? <img src={item.image} className="object-cover mix-blend-multiply w-full h-full" /> : <Package className="h-8 w-8 text-zinc-200" />}
                       </div>
+                      
                       <div className="flex-1 min-w-0 text-left">
-                        <h4 className="font-black text-zinc-900 text-base truncate uppercase tracking-tight italic">{item.productName}</h4>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{item.size} &bull; ₹{item.base_price} / {item.unit || 'pcs'}</span>
+                        <h4 className="font-black text-zinc-900 text-lg truncate uppercase tracking-tight italic leading-tight">{item.productName}</h4>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-zinc-50 text-zinc-500 border-zinc-100 px-2 rounded-lg">
+                            {item.size}
+                          </Badge>
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">₹{item.base_price}/{item.unit || 'pcs'}</span>
                           {item.pricing_type === 'bundle' && (
                             <Badge className="bg-blue-500/10 text-blue-600 border-none text-[8px] font-black h-4 px-1.5 uppercase tracking-widest">
-                              Bundle: {item.bundle_qty} for ₹{item.bundle_price}
+                              Bundle Price Applied
                             </Badge>
                           )}
                         </div>
                       </div>
+
                       <div className="flex flex-col items-end gap-3 shrink-0">
-                        <div className="font-black text-zinc-900 tracking-tighter text-xl italic">₹{(item.line_total).toLocaleString()}</div>
-                        <div className="flex items-center bg-zinc-100/80 p-1.5 rounded-2xl shadow-inner h-11 border border-white/50">
-                          <button onClick={() => updateQty(item.id, -1)} className="w-10 h-full flex items-center justify-center hover:bg-white rounded-xl text-zinc-400 hover:text-zinc-900 transition-all active:scale-75"><Minus className="h-4 w-4" /></button>
+                        <div className="font-black text-zinc-900 tracking-tighter text-2xl italic leading-none">₹{(item.line_total).toLocaleString()}</div>
+                        <div className="flex items-center bg-zinc-900 text-white p-1 rounded-2xl shadow-2xl h-12 border border-zinc-800">
+                          <button onClick={() => updateQty(item.id, -1)} className="w-10 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all active:scale-75"><Minus className="h-4 w-4" /></button>
                           {item.unit === 'kg' ? (
-                            <input type="number" value={item.qty} onChange={(e) => { const val = parseFloat(e.target.value); if (!isNaN(val)) setCart(cart.map(c => c.id === item.id ? { ...c, qty: val } : c)); }} className="w-16 text-center font-black text-sm text-zinc-900 bg-transparent border-none focus:ring-0 outline-none p-0" step="0.1" />
+                            <input 
+                              type="number" 
+                              value={item.qty} 
+                              onChange={(e) => { 
+                                const val = parseFloat(e.target.value); 
+                                if (!isNaN(val)) setCart(cart.map(c => c.id === item.id ? { ...c, qty: val, line_total: calculateItemTotal(c, val) } : c)); 
+                              }} 
+                              className="w-16 text-center font-black text-sm bg-transparent border-none focus:ring-0 outline-none p-0 text-white" 
+                              step="0.1" 
+                            />
                           ) : (
-                            <span className="w-10 text-center font-black text-sm text-zinc-900">{item.qty}</span>
+                            <span className="w-10 text-center font-black text-sm">{item.qty}</span>
                           )}
-                          <span className="text-[9px] font-black text-zinc-400 uppercase pr-2">{item.unit || 'pcs'}</span>
-                          <button onClick={() => updateQty(item.id, 1)} className="w-10 h-full flex items-center justify-center hover:bg-white rounded-xl text-zinc-400 hover:text-zinc-900 transition-all active:scale-75"><Plus className="h-4 w-4" /></button>
+                          <button onClick={() => updateQty(item.id, 1)} className="w-10 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all active:scale-75"><Plus className="h-4 w-4" /></button>
                         </div>
                       </div>
-                      <button onClick={() => removeItem(item.id)} className="absolute -top-1 -right-1 p-3 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white shadow-xl rounded-full border border-zinc-100"><Trash2 className="h-4 w-4" /></button>
+                      
+                      <button onClick={() => removeItem(item.id)} className="absolute -top-2 -right-2 p-3 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all bg-white shadow-2xl rounded-full border border-zinc-100 scale-75 group-hover:scale-100">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </motion.div>
                   ))}
                 </div>
@@ -385,55 +437,127 @@ export default function POS() {
           </ScrollArea>
         </Card>
 
-        {/* Checkout Card */}
-        <Card className="border-none shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] bg-white rounded-[3rem] overflow-visible relative">
-          <CardContent className="p-0">
-            <div className="p-10 bg-zinc-900 text-white rounded-t-[3rem] border-b border-white/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
-              <div className="flex justify-between items-center mb-8 relative z-10">
-                <span className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[10px]">SUBTOTAL AMOUNT</span>
-                <span className="font-black text-white text-3xl tracking-tighter italic">₹{subtotal.toLocaleString()}</span>
-              </div>
-              <div className="space-y-8 relative z-10">
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-blue-400"><Tag className="h-4 w-4"/> BARGAIN SLIDER</span>
-                  <span className="text-lg font-black text-blue-400 italic">- ₹{actualDiscount}</span>
+        {/* Dynamic Checkout Console (The Elite 1000x Upgrade) */}
+        <div className="relative group mt-auto">
+          {/* Decorative Backdrops */}
+          <div className="absolute -inset-4 bg-zinc-900 rounded-[4.5rem] blur-3xl opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-1000" />
+          
+          <Card className="border-none shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] bg-zinc-900 rounded-[4rem] overflow-hidden relative border-t border-white/10">
+            <CardContent className="p-0">
+              {/* Summary Strip */}
+              <div className="px-12 py-10 space-y-8 relative z-10 overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+                
+                <div className="flex justify-between items-end relative z-10">
+                  <div className="space-y-1">
+                    <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px]">PAYABLE TOTAL</p>
+                    <div className="flex items-baseline gap-2">
+                       <span className="text-zinc-400 text-2xl font-black italic tracking-tighter opacity-50 uppercase">INR</span>
+                       <motion.span 
+                         key={finalTotal}
+                         initial={{ y: 20, opacity: 0 }}
+                         animate={{ y: 0, opacity: 1 }}
+                         className={cn("text-7xl font-black tracking-tighter italic leading-none transition-colors duration-500", isBelowMsp ? 'text-red-500' : 'text-white')}
+                       >
+                         {finalTotal.toLocaleString()}
+                       </motion.span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                     <p className="text-zinc-500 font-black uppercase tracking-[0.4em] text-[10px] mb-1">SUB: {subtotal.toLocaleString()}</p>
+                     <div className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
+                        SAVING ₹{actualDiscount}
+                     </div>
+                  </div>
                 </div>
-                <Slider disabled={cart.length === 0} value={[actualDiscount]} max={subtotal} step={10} onValueChange={(vals) => setDiscount(Array.isArray(vals) ? vals[0] : (vals as number))} className="py-2" />
-                <AnimatePresence>
-                  {isBelowMsp && cart.length > 0 && (
-                    <motion.div initial={{ opacity: 0, y: -10, height: 0 }} animate={{ opacity: 1, y: 0, height: "auto" }} exit={{ opacity: 0, y: -10, height: 0 }} className="bg-red-500/10 text-red-400 p-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest flex items-center gap-4 border border-red-500/20 shadow-2xl">
-                      <AlertTriangle className="h-6 w-6 shrink-0" />
-                      Danger: Selling below MSP limit (₹{totalMsp})
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
 
-            <div className="p-10 space-y-10 bg-white rounded-b-[3rem]">
-              <div className="flex justify-between items-end">
-                <span className="text-zinc-400 font-black uppercase tracking-[0.3em] text-[10px] mb-3">FINAL PAYABLE</span>
-                <span className={cn("text-6xl font-black tracking-tighter italic leading-none", isBelowMsp ? 'text-red-600' : 'text-zinc-900')}>₹{finalTotal.toLocaleString()}</span>
+                {/* Interactive Bargain Engine */}
+                <div className="space-y-6 pt-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 hover:text-zinc-400 cursor-help transition-colors">
+                      <Tag className="h-4 w-4"/> BARGAIN CONSOLE
+                    </span>
+                    <Badge className="bg-zinc-800 text-zinc-400 border-zinc-700 h-6 px-3 rounded-lg text-[9px] font-black italic shadow-inner">
+                      LIMIT: ₹{subtotal}
+                    </Badge>
+                  </div>
+                  <Slider 
+                    disabled={cart.length === 0} 
+                    value={[actualDiscount]} 
+                    max={subtotal} 
+                    step={10} 
+                    onValueChange={(vals) => setDiscount(Array.isArray(vals) ? vals[0] : vals)} 
+                    className="py-2" 
+                  />
+                  
+                  <AnimatePresence>
+                    {isBelowMsp && cart.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }} 
+                        animate={{ opacity: 1, scale: 1 }} 
+                        className="bg-red-500/10 text-red-400 p-6 rounded-[2rem] text-[10px] font-black uppercase tracking-widest flex items-center gap-5 border border-red-500/20 shadow-[0_20px_40px_rgba(239,68,68,0.15)] relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-red-500/5 animate-pulse" />
+                        <AlertTriangle className="h-8 w-8 shrink-0 animate-bounce" />
+                        <div className="relative z-10 leading-relaxed">
+                           WARNING: Selling below MSP limit (₹{totalMsp})<br/>
+                           <span className="opacity-60 text-[8px]">Proprietor approval required for this transaction</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                {[
-                  { id: 'upi', icon: QrCode, label: 'UPI / QR' },
-                  { id: 'cash', icon: IndianRupee, label: 'CASH' },
-                  { id: 'split', icon: Percent, label: 'SPLIT' },
-                  { id: 'khata', icon: Users, label: 'KHATA' }
-                ].map(mode => (
-                  <Button key={mode.id} className={cn("h-16 rounded-2xl flex items-center justify-center gap-3 border-2 transition-all font-black text-[10px] uppercase tracking-[0.2em] shadow-sm active:scale-95", paymentMode === mode.id ? `bg-zinc-900 border-zinc-900 text-white shadow-2xl` : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200')} onClick={() => setPaymentMode(mode.id as any)}>
-                    <mode.icon className="h-5 w-5" /> {mode.label}
-                  </Button>
-                ))}
+
+              {/* Action Area */}
+              <div className="p-10 pt-2 space-y-8 bg-white rounded-t-[4.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] relative z-20">
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { id: 'upi', icon: QrCode, label: 'UPI / QR', color: 'blue' },
+                    { id: 'cash', icon: IndianRupee, label: 'CASH PAYMENT', color: 'zinc' },
+                    { id: 'split', icon: Percent, label: 'SPLIT BILL', color: 'zinc' },
+                    { id: 'khata', icon: Users, label: 'DIGITAL KHATA', color: 'amber' }
+                  ].map(mode => (
+                    <motion.button 
+                      key={mode.id} 
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      className={cn(
+                        "h-20 rounded-[1.75rem] flex flex-col items-center justify-center gap-2 border-2 transition-all font-black text-[9px] uppercase tracking-[0.2em] relative overflow-hidden group shadow-sm",
+                        paymentMode === mode.id 
+                          ? "bg-zinc-900 border-zinc-900 text-white shadow-2xl" 
+                          : "bg-zinc-50/50 border-zinc-100 text-zinc-400 hover:border-zinc-300 hover:bg-white"
+                      )} 
+                      onClick={() => setPaymentMode(mode.id as any)}
+                    >
+                      {paymentMode === mode.id && (
+                        <motion.div layoutId="mode-bg" className="absolute inset-0 bg-zinc-900 -z-10" />
+                      )}
+                      <mode.icon className={cn("h-6 w-6 transition-transform duration-500 group-hover:scale-110", paymentMode === mode.id ? 'text-white' : 'text-zinc-400')} /> 
+                      {mode.label}
+                    </motion.button>
+                  ))}
+                </div>
+
+                <motion.button 
+                  whileHover={{ y: -4, boxShadow: "0 40px 60px -15px rgba(0,0,0,0.3)" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCheckout} 
+                  disabled={cart.length === 0}
+                  className={cn(
+                    "w-full h-28 text-2xl font-black uppercase tracking-[0.3em] rounded-[2.5rem] transition-all transform border-none italic flex items-center justify-center gap-6 group shadow-2xl shadow-zinc-900/40",
+                    isBelowMsp ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-zinc-900 hover:bg-black text-white'
+                  )} 
+                >
+                  <span className="pl-6">{isBelowMsp ? "OVERRIDE & PAY" : "AUTHORISE & BILL"}</span>
+                  <div className="h-14 w-14 rounded-full bg-white/10 flex items-center justify-center group-hover:translate-x-3 transition-transform duration-500">
+                    <ArrowRight className="h-8 w-8" />
+                  </div>
+                </motion.button>
               </div>
-              <Button onClick={handleCheckout} className={cn("w-full h-24 text-2xl font-black uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-[2rem] transition-all transform active:scale-[0.98] border-none italic", isBelowMsp ? 'bg-red-600 hover:bg-red-700 shadow-red-600/30' : 'bg-zinc-900 hover:bg-black shadow-zinc-900/40', "text-white")} disabled={cart.length === 0}>
-                {isBelowMsp ? "Checkout Anyway" : "Generate Bill"} <ArrowRight className="ml-4 h-8 w-8" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
