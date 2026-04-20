@@ -52,7 +52,6 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
-          <AIChatBot />
         </div>
         <Toaster />
       </body>
