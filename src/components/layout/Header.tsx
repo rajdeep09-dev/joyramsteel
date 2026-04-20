@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, WifiOff, Cloud, Loader2, Clock, RefreshCcw, ChevronDown, DatabaseBackup } from "lucide-react";
+import { Bell, WifiOff, Cloud, Loader2, Clock, RefreshCcw, ChevronDown, DatabaseBackup, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 export function Header() {
   const [isOnline, setIsOnline] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'error'>('idle');
   const [currentTime, setCurrentTime] = useState(new Date());
   const pathname = usePathname();
   
@@ -23,9 +24,12 @@ export function Header() {
     // 1. Live Clock
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
-    // 2. Sync Listener
-    const handleSync = (e: any) => setLastSync(e.detail);
-    window.addEventListener('database-synced', handleSync);
+    // 2. Sync Listeners
+    const handleSyncTime = (e: any) => setLastSync(e.detail);
+    const handleSyncStatus = (e: any) => setSyncState(e.detail);
+    
+    window.addEventListener('database-synced', handleSyncTime);
+    window.addEventListener('sync-status', handleSyncStatus);
 
     // 3. Online/Offline
     setIsOnline(navigator.onLine);
@@ -40,7 +44,8 @@ export function Header() {
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('database-synced', handleSync);
+      window.removeEventListener('database-synced', handleSyncTime);
+      window.removeEventListener('sync-status', handleSyncStatus);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
@@ -60,7 +65,7 @@ export function Header() {
   };
 
   const handleManualSync = () => {
-    toast.info("Force Syncing with Cloud...");
+    toast.info("Triggering Cloud Sync...");
     window.dispatchEvent(new Event('request-sync'));
   };
 
@@ -90,14 +95,30 @@ export function Header() {
             <DropdownMenuTrigger>
                 <div className="flex flex-col items-end gap-1.5 mr-2 cursor-pointer group">
                     {isOnline && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-100/50 shadow-sm group-hover:bg-emerald-100 transition-colors">
-                        <Cloud className="h-3 w-3" /> Synced <ChevronDown className="h-2 w-2 ml-1 opacity-40 group-hover:opacity-100" />
-                    </div>
+                      <div className={`flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm transition-all
+                        ${syncState === 'syncing' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                          syncState === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 
+                          'bg-emerald-50 text-emerald-600 border-emerald-100/50 group-hover:bg-emerald-100'}`}>
+                        
+                        {syncState === 'syncing' ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : syncState === 'error' ? (
+                          <AlertCircle className="h-3 w-3" />
+                        ) : (
+                          <Cloud className="h-3 w-3" />
+                        )}
+                        
+                        {syncState === 'syncing' ? 'Syncing' : syncState === 'error' ? 'Error' : 'Synced'}
+                        <ChevronDown className="h-2 w-2 ml-1 opacity-40 group-hover:opacity-100" />
+                      </div>
                     )}
-                    {lastSync && (
+                    
+                    {lastSync ? (
                         <span className="text-[8px] font-black text-zinc-400 uppercase tracking-tighter">
                             Last: {new Date(lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                    ) : (
+                        <span className="text-[8px] font-black text-zinc-300 uppercase tracking-tighter">Never Synced</span>
                     )}
                 </div>
             </DropdownMenuTrigger>

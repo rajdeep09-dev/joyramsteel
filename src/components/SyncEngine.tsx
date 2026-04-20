@@ -9,28 +9,27 @@ export function SyncEngine() {
   const isSyncing = useRef(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
-  // Use localStorage to remember last sync time across refreshes
   useEffect(() => {
     const saved = localStorage.getItem('last_db_sync');
     if (saved) setLastSyncTime(saved);
-  }, []);
 
-  useEffect(() => {
     const syncInterval = setInterval(async () => {
       await performSync();
-    }, 10000); // Polling every 10s for battery/data efficiency
+    }, 10000); 
 
-    // Listen for manual sync requests
-    const handleManualSync = () => performSync();
+    const handleManualSync = () => performSync(true);
     window.addEventListener('request-sync', handleManualSync);
+
+    // Initial sync on mount
+    performSync();
 
     return () => {
       clearInterval(syncInterval);
       window.removeEventListener('request-sync', handleManualSync);
     };
-  }, [lastSyncTime]);
+  }, []);
 
-  const performSync = async () => {
+  const performSync = async (isForce = false) => {
     if (isSyncing.current) return;
     
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
@@ -38,7 +37,7 @@ export function SyncEngine() {
     }
 
     isSyncing.current = true;
-    const syncStartTime = new Date().toISOString();
+    window.dispatchEvent(new CustomEvent('sync-status', { detail: 'syncing' }));
     
     try {
       const tables = [
@@ -53,29 +52,27 @@ export function SyncEngine() {
       ];
 
       for (const table of tables) {
-        // --- 1. PULL FROM CLOUD ---
+        // 1. PULL
         let pullQuery = supabase.from(table.name).select('*');
-        // If we have a last sync time, only pull what's newer
-        if (lastSyncTime) {
+        
+        // If not force sync and we have a last sync, only get new stuff
+        // But for Browser B (new browser), lastSyncTime will be null, so it gets everything.
+        if (!isForce && lastSyncTime) {
           pullQuery = pullQuery.gt('updated_at', lastSyncTime);
         }
         
         const { data: cloudChanges, error: pullError } = await pullQuery;
         
-        if (pullError) {
-            console.error(`Pull error [${table.name}]:`, pullError);
-        } else if (cloudChanges && cloudChanges.length > 0) {
+        if (!pullError && cloudChanges && cloudChanges.length > 0) {
           for (const cloudItem of cloudChanges) {
             const localItem = await (table.db as any).get(cloudItem.id);
-            // Conflict Resolution: Cloud wins if newer
             if (!localItem || new Date(cloudItem.updated_at) > new Date(localItem.updated_at)) {
               await (table.db as any).put({ ...cloudItem, sync_status: 'synced' });
             }
           }
         }
 
-        // --- 2. PUSH TO CLOUD ---
-        // Fetch items that are pending sync
+        // 2. PUSH
         const toPush = await (table.db as any)
           .where('sync_status').equals('pending')
           .toArray();
@@ -88,24 +85,22 @@ export function SyncEngine() {
 
           const { error: pushError } = await supabase.from(table.name).upsert(cleanedPush);
           
-          if (pushError) {
-            console.error(`Push error [${table.name}]:`, pushError);
-          } else {
-            // Mark successfully pushed items as synced
+          if (!pushError) {
             const syncedItems = toPush.map((item: any) => ({ ...item, sync_status: 'synced' }));
             await (table.db as any).bulkPut(syncedItems);
           }
         }
       }
 
-      setLastSyncTime(syncStartTime);
-      localStorage.setItem('last_db_sync', syncStartTime);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('database-synced', { detail: syncStartTime }));
-      }
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      localStorage.setItem('last_db_sync', now);
+      window.dispatchEvent(new CustomEvent('database-synced', { detail: now }));
+      window.dispatchEvent(new CustomEvent('sync-status', { detail: 'idle' }));
 
     } catch (err) {
-      console.error("Critical Sync Failure:", err);
+      console.error("Sync Error:", err);
+      window.dispatchEvent(new CustomEvent('sync-status', { detail: 'error' }));
     } finally {
       isSyncing.current = false;
     }
