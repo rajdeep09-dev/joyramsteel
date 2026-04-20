@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, Users, FileText } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Users, FileText, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -11,6 +11,7 @@ const navItems = [
   { name: "POS", href: "/pos", icon: ShoppingCart },
   { name: "STOCK", href: "/inventory", icon: Package },
   { name: "KHATA", href: "/khata", icon: Users },
+  { name: "HISTORY", href: "/history", icon: History },
   { name: "VAULT", href: "/vault", icon: FileText },
 ];
 
@@ -19,7 +20,7 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-6 left-4 right-4 z-50 flex flex-col items-center gap-2">
-      <nav className="flex items-center justify-between bg-zinc-900/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] rounded-[2rem] px-3 py-3 w-full max-w-[600px]">
+      <nav className="flex items-center justify-between bg-zinc-900/90 backdrop-blur-3xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] rounded-[2rem] px-3 py-3 w-full max-w-[700px]">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -43,7 +44,7 @@ export function BottomNav() {
               />
               <span 
                 className={cn(
-                  "text-[9px] font-black mt-1.5 relative z-10 transition-colors duration-300 tracking-[0.1em]",
+                  "text-[8px] font-black mt-1.5 relative z-10 transition-colors duration-300 tracking-[0.1em]",
                   isActive ? "text-white" : "text-zinc-600"
                 )}
               >

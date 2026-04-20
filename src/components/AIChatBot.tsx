@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+import imageCompression from "browser-image-compression";
 
 interface Message {
   id: string;
@@ -39,15 +40,21 @@ export function AIChatBot() {
     }
   }, [messages, isOpen]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+    for (const file of files) {
+      try {
+        const options = { maxSizeMB: 0.1, maxWidthOrHeight: 800, useWebWorker: true };
+        const compressed = await imageCompression(file, options);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImages(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        console.error("AI Image compression failed:", err);
+      }
+    }
   };
 
   const removeImage = (index: number) => {

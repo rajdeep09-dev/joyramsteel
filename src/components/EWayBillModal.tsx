@@ -16,7 +16,8 @@ import {
   X,
   Plus,
   Layout,
-  Trash2
+  Trash2,
+  MapPin
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -42,15 +43,17 @@ interface EWayBillModalProps {
 export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
   const ewayRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<any[]>([
-    { itemName: "STEEL KITCHEN WARE ITEMS", itemHsn: "7323", itemQty: "1.00", itemAmount: "10,000.00" }
+    { itemName: "STEEL KITCHEN WARE ITEMS", itemHsn: "7323", itemQty: "1.00", unit: "pcs", itemAmount: "10,000.00" }
   ]);
   const [details, setDetails] = useState({
     no: "7615 9627 7617",
     date: new Date().toLocaleDateString('en-GB') + " 04:49 PM",
     fromName: "JOY RAM STEEL",
     fromGstin: "16ENCPD2885R1ZE",
+    fromAddress: "DHAJANAGAR, UDAIPUR, TRIPURA",
     toName: "",
     toGstin: "",
+    toAddress: "TRIPURA - 799114",
     transporter: "Vikash Steel Logistics",
     vehicleNo: "TR03L1621"
   });
@@ -104,14 +107,12 @@ export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
       <DialogContent fullScreen className="bg-zinc-950">
         
         {/* MOBILE VIEW */}
-        <div className="md:hidden flex flex-col h-full w-full">
+        <div className="md:hidden flex flex-col h-full w-full overflow-hidden">
           <Tabs defaultValue="edit" className="flex-1 flex flex-col h-full overflow-hidden">
-            <div className="bg-zinc-900 border-b border-white/10 p-3 shrink-0">
-              <TabsList className="w-full bg-zinc-800/50 rounded-2xl h-14 p-1">
-                <TabsTrigger value="edit" className="rounded-xl font-black text-[10px] tracking-widest uppercase">1. Data</TabsTrigger>
-                <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] tracking-widest uppercase">2. View</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid grid-cols-2 h-16 bg-zinc-900 border-b border-white/10 p-2 shrink-0">
+              <TabsTrigger value="edit" className="rounded-xl font-black text-[10px] uppercase">1. Edit Data</TabsTrigger>
+              <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] uppercase">2. View Manifest</TabsTrigger>
+            </TabsList>
             <TabsContent value="edit" className="flex-1 overflow-y-auto bg-white m-0 p-6 pb-24">
               <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
             </TabsContent>
@@ -128,7 +129,7 @@ export function EWayBillModal({ isOpen, onClose }: EWayBillModalProps) {
           <div className="w-[480px] h-full bg-white shrink-0 border-r border-zinc-100 overflow-y-auto p-10 scrollbar-hide">
              <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
           </div>
-          <div className="flex-1 h-full overflow-auto p-20 flex items-start justify-center scrollbar-hide">
+          <div className="flex-1 h-full overflow-auto bg-zinc-900 p-12 lg:p-20 flex items-start justify-center scrollbar-hide">
              <div className="origin-top transform-gpu scale-[0.7] lg:scale-[0.85] xl:scale-100 transition-all">
                 <EWayPreview ref={ewayRef} details={details} items={items} />
              </div>
@@ -156,19 +157,38 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
           <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1 tracking-widest">Manifest Details</Label>
           <Input value={details.no} onChange={e=>setDetails({...details, no:e.target.value})} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black text-lg shadow-inner text-center uppercase" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Input value={details.toGstin} onChange={e=>setDetails({...details, toGstin:e.target.value})} placeholder="Receiver GSTIN" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black uppercase shadow-inner" />
-          <Input value={details.toName} onChange={e=>setDetails({...details, toName:e.target.value})} placeholder="Receiver Name" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-bold shadow-inner uppercase" />
+        
+        <div className="space-y-4">
+           <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1 tracking-widest">Address Configuration</Label>
+           <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-2">
+               <span className="text-[8px] font-black text-blue-600 uppercase pl-1">Sender (From)</span>
+               <Input value={details.fromName} onChange={e=>setDetails({...details, fromName:e.target.value})} placeholder="From Name" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
+               <Input value={details.fromAddress} onChange={e=>setDetails({...details, fromAddress:e.target.value})} placeholder="From Address" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold" />
+             </div>
+             <div className="space-y-2">
+               <span className="text-[8px] font-black text-blue-600 uppercase pl-1">Receiver (To)</span>
+               <Input value={details.toName} onChange={e=>setDetails({...details, toName:e.target.value})} placeholder="Customer Name" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase" />
+               <Input value={details.toAddress} onChange={e=>setDetails({...details, toAddress:e.target.value})} placeholder="Final Destination" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold" />
+             </div>
+           </div>
         </div>
+
         <div className="grid grid-cols-2 gap-4">
-          <Input value={details.transporter} onChange={e=>setDetails({...details, transporter:e.target.value})} placeholder="Transporter" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-bold shadow-inner uppercase" />
-          <Input value={details.vehicleNo} onChange={e=>setDetails({...details, vehicleNo:e.target.value})} placeholder="Vehicle No" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 font-black uppercase shadow-inner" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Transporter</Label>
+            <Input value={details.transporter} onChange={e=>setDetails({...details, transporter:e.target.value})} placeholder="Transporter" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold uppercase shadow-inner" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-zinc-400 pl-1">Vehicle No</Label>
+            <Input value={details.vehicleNo} onChange={e=>setDetails({...details, vehicleNo:e.target.value})} placeholder="Vehicle No" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-black uppercase shadow-inner" />
+          </div>
         </div>
       </div>
 
       <div className="space-y-4 pt-6 border-t border-zinc-100">
         <div className="flex justify-between items-center px-1">
-          <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Goods Details</Label>
+          <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Goods Selection</Label>
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1"><Layout className="h-3 w-3" /> Quick Catalog</Button>} />
             <DropdownMenuContent className="max-h-[400px] overflow-y-auto rounded-3xl p-3 min-w-[300px] shadow-2xl border-zinc-100 bg-white z-[6000]">
@@ -221,7 +241,7 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
       <div className="mt-auto grid grid-cols-2 gap-4 pb-8">
         <Button onClick={()=>window.print()} variant="outline" className="h-20 rounded-[1.5rem] border-2 border-zinc-100 font-black tracking-widest text-[10px] hover:bg-zinc-50 uppercase"><Printer className="h-6 w-6 mr-3 text-zinc-400" /> Print</Button>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase"><Download className="h-6 w-6 mr-3" /> Save</Button>} />
+          <DropdownMenuTrigger render={<Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase"><Download className="h-6 w-6 mr-3 text-zinc-400" /> Save</Button>} />
           <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
              <DropdownMenuItem onClick={()=>exportDoc('img')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><ImageIcon className="h-6 w-6 text-blue-600" /> Image</DropdownMenuItem>
              <DropdownMenuItem onClick={()=>exportDoc('pdf')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><FileText className="h-6 w-6 text-red-600" /> PDF</DropdownMenuItem>
@@ -238,7 +258,25 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
       <div className="flex justify-between items-start mb-10"><h1 className="text-[24pt] font-black tracking-tight border-b-4 border-black pb-2 uppercase italic text-left">e-Way Bill</h1><div className="border-4 border-black p-2"><QrCode className="h-20 w-20 text-zinc-900" /></div></div>
       <div className="space-y-8 text-left">
         <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">1. Details</div><div className="grid grid-cols-2 gap-y-3 text-[11pt] px-2 font-bold uppercase"><div>eWay Bill No: <span className="font-black">{details.no}</span></div><div>Date: <span className="font-black">{details.date}</span></div><div>Mode: Road</div><div>Type: Supply</div></div></section>
-        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">2. Address</div><div className="grid grid-cols-2 gap-12 px-2"><div className="space-y-1"><div className="font-black text-[10pt] uppercase underline">From</div><div className="font-black text-[14pt] text-blue-700 leading-none">{details.fromGstin}</div><div className="font-black text-[12pt] uppercase italic leading-none">{details.fromName}</div></div><div className="space-y-1"><div className="font-black text-[10pt] uppercase underline">To</div><div className="font-black text-[14pt] text-blue-700 leading-none uppercase">{details.toGstin || "URP"}</div><div className="font-black text-[12pt] uppercase leading-none uppercase">{details.toName || "WALK-IN"}</div></div></div></section>
+        
+        <section>
+          <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">2. Address Details</div>
+          <div className="grid grid-cols-2 gap-12 px-2">
+            <div className="space-y-1 relative border-2 border-dashed border-zinc-100 p-4 rounded-2xl bg-zinc-50/50">
+              <div className="font-black text-[10pt] uppercase underline text-blue-600 mb-2">From (Sender)</div>
+              <div className="font-black text-[14pt] text-zinc-900 tracking-wider leading-none uppercase">{details.fromName}</div>
+              <div className="text-[10pt] font-bold text-zinc-400 mt-2 leading-tight uppercase">{details.fromAddress}</div>
+              <div className="mt-2 pt-2 border-t border-zinc-200 font-black text-[10pt] tracking-tighter text-blue-800 italic">GSTIN: {details.fromGstin}</div>
+            </div>
+            <div className="space-y-1 relative border-2 border-dashed border-zinc-100 p-4 rounded-2xl bg-zinc-50/50">
+              <div className="font-black text-[10pt] uppercase underline text-emerald-600 mb-2">To (Final Destination)</div>
+              <div className="font-black text-[14pt] text-zinc-900 tracking-wider leading-none uppercase">{details.toName || "WALK-IN"}</div>
+              <div className="text-[10pt] font-bold text-zinc-400 mt-2 leading-tight uppercase">{details.toAddress || "URP"}</div>
+              <div className="mt-2 pt-2 border-t border-zinc-200 font-black text-[10pt] tracking-tighter text-blue-800 italic">GSTIN: {details.toGstin || "UNREGISTERED"}</div>
+            </div>
+          </div>
+        </section>
+
         <section>
           <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">3. Goods</div>
           <table className="w-full border-collapse border-2 border-black text-[10pt]">
@@ -246,7 +284,7 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
               <tr className="bg-zinc-50 font-black uppercase border-b-2 border-black text-center">
                 <th className="p-2 border-r-2 border-black">HSN</th>
                 <th className="p-2 text-left border-r-2 border-black pl-4">Product Description</th>
-                <th className="p-2 border-r-2 border-black">Qty</th>
+                <th className="p-2 border-r-2 border-black">Qty Unit</th>
                 <th className="p-2 text-right pr-4">Amount</th>
               </tr>
             </thead>
@@ -260,7 +298,7 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
                 </tr>
               ))}
               {/* Fill empty rows to maintain look */}
-              {items.length < 5 && [...Array(5 - items.length)].map((_, i) => (
+              {items.length < 4 && [...Array(4 - items.length)].map((_, i) => (
                 <tr key={`e-${i}`} className="h-[10mm] border-b border-zinc-100 last:border-0">
                   <td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td className="border-r-2 border-black"></td><td></td>
                 </tr>
@@ -268,7 +306,26 @@ const EWayPreview = React.forwardRef(({ details, items }: any, ref: any) => {
             </tbody>
           </table>
         </section>
-        <section><div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">4. Vehicle</div><table className="w-full border-collapse border-2 border-black text-[10pt]"><thead><tr className="bg-zinc-50 font-black uppercase border-b-2 border-black"><th className="p-2 border-r-2 border-black">Mode</th><th className="p-2 border-r-2 border-black">Vehicle No.</th><th className="p-2">From</th></tr></thead><tbody><tr className="h-[12mm] font-black uppercase italic text-center"><td className="p-2 border-r-2 border-black">Road</td><td className="p-2 border-r-2 border-black text-[14pt] tracking-tighter">{details.vehicleNo.toUpperCase()}</td><td className="p-2">AGARTALA</td></tr></tbody></table></section>
+        
+        <section>
+          <div className="font-black border-b-2 border-black pb-1 mb-4 text-[12pt] uppercase bg-zinc-100 px-2 py-1">4. Logistics Details</div>
+          <table className="w-full border-collapse border-2 border-black text-[10pt]">
+            <thead>
+              <tr className="bg-zinc-50 font-black uppercase border-b-2 border-black">
+                <th className="p-2 border-r-2 border-black w-1/3">Transporter</th>
+                <th className="p-2 border-r-2 border-black w-1/3 text-center flex items-center justify-center gap-2">Vehicle <MapPin className="h-4 w-4" /></th>
+                <th className="p-2">Point of Origin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="h-[12mm] font-black uppercase italic text-center">
+                <td className="p-2 border-r-2 border-black">{details.transporter.toUpperCase()}</td>
+                <td className="p-2 border-r-2 border-black text-[14pt] tracking-tighter text-blue-700 underline">{details.vehicleNo.toUpperCase()}</td>
+                <td className="p-2 font-black not-italic">AGARTALA, TRIPURA</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
       </div>
       <div className="mt-auto pt-12 flex flex-col items-center gap-4"><div className="w-[120mm] h-[15mm] border-2 border-black flex items-center justify-center relative bg-white"><BarcodeIcon className="h-full w-full px-8 text-zinc-900" /><div className="absolute -bottom-6 font-black tracking-[1.2em] text-[10pt] uppercase">{details.no.replace(/\s/g, '').toUpperCase()}</div></div></div>
     </div>

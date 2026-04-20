@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Users, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, FileText, Settings, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,7 +11,7 @@ const navItems = [
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Digital Khata", href: "/khata", icon: Users },
   { name: "GST Vault", href: "/vault", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Sales History", href: "/history", icon: History },
 ];
 
 export function Sidebar() {

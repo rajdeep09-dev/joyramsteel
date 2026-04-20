@@ -37,7 +37,7 @@ export default function Vault() {
   const [isGstModalOpen, setIsGstModalOpen] = useState(false);
   const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
   
-  const bills = useLiveQuery(() => db.bills.toArray(), []) || [];
+  const bills = useLiveQuery(() => db.bills.where('is_deleted').equals(0).toArray(), []) || [];
   const pendingAmount = bills.filter(b => b.status === "Pending").reduce((acc, curr) => acc + curr.amount, 0);
 
   const handleAddBill = async () => {
@@ -91,17 +91,11 @@ export default function Vault() {
     toast.success("Marked as Paid");
   };
 
-  const handleDeleteBill = async (id: string, imageUrl?: string) => {
+  const handleDeleteBill = async (id: string) => {
     if (!confirm("Delete this bill from vault?")) return;
     
-    if (imageUrl) {
-      const path = imageUrl.split('/product-images/')[1];
-      if (path) {
-        await supabase.storage.from('product-images').remove([path]);
-      }
-    }
-
-    await db.bills.delete(id);
+    // Production logic: Soft delete for sync reliability
+    await db.bills.update(id, { is_deleted: 1, updated_at: new Date().toISOString() });
     toast.success("Bill removed");
   };
 
@@ -252,7 +246,7 @@ export default function Vault() {
                   </TableCell>
                   <TableCell className="text-right pr-8 py-6">
                     <div className="flex gap-2 justify-end">
-                      <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl" onClick={() => handleDeleteBill(bill.id, bill.image_url)}>
+                      <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl" onClick={() => handleDeleteBill(bill.id)}>
                         <Trash2 className="h-5 w-5" />
                       </Button>
                       <Button 

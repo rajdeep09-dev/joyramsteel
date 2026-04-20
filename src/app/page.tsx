@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { 
   IndianRupee, TrendingUp, Package, AlertTriangle,
-  QrCode, ShoppingCart, Banknote, MessageCircle, Truck
+  QrCode, ShoppingCart, Banknote, MessageCircle, Truck, History as HistoryIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -95,6 +95,7 @@ export default function Dashboard() {
       name: p?.name || "Unknown",
       size: v.size,
       stock: v.stock,
+      unit: v.unit || 'pcs',
       status: v.stock < 5 ? "Critical" : "Low"
     };
   });
@@ -133,7 +134,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-10">
+    <div className="space-y-8 max-w-7xl mx-auto pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-4xl font-black tracking-tight text-zinc-900">Good Evening, Suraj! 👋</h2>
@@ -141,15 +142,15 @@ export default function Dashboard() {
         </div>
         <div className="flex gap-4">
           <Link href="/pos">
-            <Button size="lg" className="bg-zinc-900 hover:bg-zinc-800 text-white shadow-2xl shadow-zinc-900/20 rounded-2xl h-14 px-8 font-black transition-all active:scale-95">
+            <Button size="lg" className="bg-zinc-900 hover:bg-black text-white shadow-2xl shadow-zinc-900/20 rounded-2xl h-14 px-8 font-black transition-all active:scale-95">
               <ShoppingCart className="mr-2 h-5 w-5" />
               Open POS
             </Button>
           </Link>
-          <Link href="/inventory">
-            <Button size="lg" variant="outline" className="bg-white/50 backdrop-blur-xl hover:bg-white border-zinc-200 text-zinc-700 shadow-sm rounded-2xl h-14 px-8 font-black transition-all active:scale-95">
-              <Truck className="mr-2 h-5 w-5" />
-              Receive Stock
+          <Link href="/history">
+            <Button size="lg" variant="outline" className="bg-white border-2 border-zinc-900 hover:bg-zinc-50 text-zinc-900 shadow-2xl rounded-2xl h-14 px-8 font-black transition-all active:scale-95">
+              <HistoryIcon className="mr-2 h-5 w-5" />
+              Archives
             </Button>
           </Link>
         </div>
@@ -223,6 +224,51 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Recent Item Sales */}
+          <Card className="border-none shadow-2xl shadow-zinc-200/50 bg-white/70 backdrop-blur-3xl rounded-[2.5rem]">
+            <CardHeader className="p-8 pb-4">
+              <CardTitle className="text-2xl font-black flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-xl"><ShoppingCart className="h-6 w-6 text-blue-600" /></div> Recent Items Sold
+              </CardTitle>
+              <CardDescription className="text-lg font-medium text-zinc-500">The latest products moved out of inventory.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 pb-8 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-none text-left">
+                    <TableHead className="pl-4 h-12 font-black uppercase text-[10px] tracking-[0.2em] text-zinc-400">Product</TableHead>
+                    <TableHead className="h-12 font-black uppercase text-[10px] tracking-[0.2em] text-zinc-400">Qty Sold</TableHead>
+                    <TableHead className="text-right pr-4 h-12 font-black uppercase text-[10px] tracking-[0.2em] text-zinc-400">Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allSaleItems.slice().reverse().slice(0, 5).map((si) => {
+                    const v = allVariants.find(v => v.id === si.variant_id);
+                    const p = allProducts.find(p => p.id === v?.product_id);
+                    const s = allSales.find(s => s.id === si.sale_id);
+                    return (
+                      <TableRow key={si.id} className="hover:bg-zinc-50/50 border-none group transition-all text-left">
+                        <TableCell className="pl-4 py-6 font-bold text-zinc-900">
+                           <div className="uppercase italic">{p?.name || "Unknown"}</div>
+                           <div className="text-[10px] font-black text-zinc-400 mt-1 uppercase tracking-widest">{v?.size || "N/A"}</div>
+                        </TableCell>
+                        <TableCell className="py-6">
+                           <span className="font-black text-zinc-900 text-xl tracking-tighter">{si.quantity} <small className="text-xs uppercase text-zinc-400 font-bold">{v?.unit || 'pcs'}</small></span>
+                        </TableCell>
+                        <TableCell className="text-right pr-4 py-6">
+                           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{s ? new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {allSaleItems.length === 0 && (
+                    <TableRow><TableCell colSpan={3} className="py-20 text-center text-zinc-400 font-black uppercase tracking-widest text-xs italic">No sales recorded yet</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
           {/* Low Stock Alerts */}
           <Card className="border-none shadow-2xl shadow-zinc-200/50 bg-white/70 backdrop-blur-3xl rounded-[2.5rem]">
             <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
@@ -251,10 +297,10 @@ export default function Dashboard() {
                     </TableRow>
                   ) : lowStock.map((item) => (
                     <TableRow key={item.id} className="hover:bg-zinc-50/50 transition-colors border-none group">
-                      <TableCell className="font-bold text-zinc-900 pl-4 py-6">{item.name}</TableCell>
-                      <TableCell className="text-zinc-500 font-medium py-6">{item.size}</TableCell>
+                      <TableCell className="font-bold text-zinc-900 pl-4 py-6 text-left">{item.name}</TableCell>
+                      <TableCell className="text-zinc-500 font-medium py-6 text-left">{item.size}</TableCell>
                       <TableCell className="text-right text-zinc-900 font-black py-6">
-                        {item.stock}
+                        {item.stock} <small className="text-[8px] uppercase text-zinc-400">{item.unit}</small>
                       </TableCell>
                       <TableCell className="text-right pr-4 py-6">
                         <Badge 
@@ -293,10 +339,10 @@ export default function Dashboard() {
                   <p className="font-bold uppercase tracking-widest text-[10px]">No overdue payments!</p>
                 </div>
               ) : khataFollowups.slice(0,3).map(customer => (
-                <div key={customer.id} className="bg-white/5 rounded-[2rem] p-6 flex flex-col gap-4 border border-white/5 backdrop-blur-xl group hover:bg-white/10 transition-all shadow-xl">
+                <div key={customer.id} className="bg-white/5 rounded-[2rem] p-6 flex flex-col gap-4 border border-white/5 backdrop-blur-xl group hover:bg-white/10 transition-all shadow-xl text-left">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-black text-xl tracking-tight group-hover:text-blue-400 transition-colors">{customer.name}</h4>
+                      <h4 className="font-black text-xl tracking-tight group-hover:text-blue-400 transition-colors uppercase italic">{customer.name}</h4>
                       <p className="text-zinc-500 font-bold text-[10px] mt-1 uppercase tracking-[0.2em]">Last TX: {customer.last_tx}</p>
                     </div>
                     <span className="text-red-400 font-black text-2xl tracking-tighter">₹{customer.balance.toLocaleString()}</span>
