@@ -49,6 +49,8 @@ export interface Sale {
   sync_status: 'pending' | 'synced';
   is_deleted: number;
   version_clock: number;
+  is_returned?: number; // 0 = active, 1 = returned
+  return_date?: string;
 }
 
 export interface SaleItem {
@@ -62,6 +64,7 @@ export interface SaleItem {
   is_deleted: number;
   sync_status: 'pending' | 'synced';
   version_clock: number;
+  is_returned?: number;
 }
 
 export interface Customer {
@@ -138,12 +141,12 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   parked_carts: EntityTable<ParkedCart, 'id'>;
 };
 
-// V11: Added version_clock for CRDT conflict resolution
-db.version(11).stores({
+// V12: Added return support
+db.version(12).stores({
   products: 'id, name, category, updated_at, is_deleted, sync_status, version_clock', 
   variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit, sync_status, version_clock', 
-  sales: 'id, date, sync_status, updated_at, is_deleted, version_clock',
-  sale_items: 'id, sale_id, variant_id, updated_at, is_deleted, sync_status, version_clock',
+  sales: 'id, date, sync_status, updated_at, is_deleted, version_clock, is_returned',
+  sale_items: 'id, sale_id, variant_id, updated_at, is_deleted, sync_status, version_clock, is_returned',
   customers: 'id, name, phone, status, updated_at, is_deleted, sync_status, version_clock',
   khata_transactions: 'id, customer_id, date, sync_status, updated_at, is_deleted, version_clock',
   bills: 'id, supplier, status, updated_at, is_deleted, sync_status, version_clock',
