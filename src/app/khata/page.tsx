@@ -67,7 +67,8 @@ export default function Khata() {
         last_tx: "Just added",
         status: balance > 0 ? "Overdue" : "Clear",
         updated_at: now,
-        is_deleted: 0
+        is_deleted: 0,
+        sync_status: 'pending'
       });
       toast.success("Customer Added!");
       setNewName(""); setNewPhone(""); setNewBalance("");

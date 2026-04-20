@@ -115,7 +115,8 @@ export function AIChatBot() {
             category: category || "General",
             created_at: now,
             updated_at: now,
-            is_deleted: 0
+            is_deleted: 0,
+            sync_status: 'pending'
           });
         }
 
@@ -142,7 +143,8 @@ export function AIChatBot() {
               msp: msp || 0,
               created_at: now,
               updated_at: now,
-              is_deleted: 0
+              is_deleted: 0,
+              sync_status: 'pending'
             });
           }
         }

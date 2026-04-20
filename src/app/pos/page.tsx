@@ -126,7 +126,8 @@ export default function POS() {
         for (const item of cart) {
           await db.sale_items.add({
             id: uuidv4(), sale_id: saleId, variant_id: item.id, quantity: item.qty,
-            unit_price: item.base_price, subtotal: item.base_price * item.qty, updated_at: now, is_deleted: 0
+            unit_price: item.base_price, subtotal: item.base_price * item.qty, updated_at: now, is_deleted: 0,
+            sync_status: 'pending'
           });
           const variant = await db.variants.get(item.id);
           if (variant) await db.variants.update(item.id, { stock: variant.stock - item.qty, updated_at: now });

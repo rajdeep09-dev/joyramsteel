@@ -79,7 +79,8 @@ export default function Vault() {
       status: "Pending",
       image_url: finalBillUrl,
       updated_at: now,
-      is_deleted: 0
+      is_deleted: 0,
+      sync_status: 'pending'
     });
     
     toast.success("Bill added to vault");

@@ -156,7 +156,8 @@ export default function Inventory() {
         image_url: finalImageUrl,
         created_at: now,
         updated_at: now,
-        is_deleted: 0
+        is_deleted: 0,
+        sync_status: 'pending'
       });
       toast.success("Variant added!");
       setNewSize(""); setNewStock(""); setNewPrice(""); setNewMsp(""); setNewImageUrl(""); setNewUnit("pcs");
@@ -200,7 +201,8 @@ export default function Inventory() {
       category: newProductCategory, 
       created_at: now,
       updated_at: now,
-      is_deleted: 0 
+      is_deleted: 0,
+      sync_status: 'pending'
     });
     toast.success("Master Product added!");
     setNewProductName("");

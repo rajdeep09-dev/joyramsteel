@@ -9,6 +9,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   is_deleted: number;
+  sync_status: 'pending' | 'synced';
 }
 
 export interface Variant {
@@ -26,6 +27,7 @@ export interface Variant {
   created_at: string;
   updated_at: string;
   is_deleted: number;
+  sync_status: 'pending' | 'synced';
 }
 
 export interface Sale {
@@ -52,6 +54,7 @@ export interface SaleItem {
   subtotal: number;
   updated_at: string;
   is_deleted: number;
+  sync_status: 'pending' | 'synced';
 }
 
 export interface Customer {
@@ -63,6 +66,7 @@ export interface Customer {
   status: 'Overdue' | 'Recent' | 'Clear';
   updated_at: string;
   is_deleted: number;
+  sync_status: 'pending' | 'synced';
 }
 
 export interface KhataTransaction {
@@ -88,6 +92,7 @@ export interface Bill {
   image_url?: string;
   updated_at: string;
   is_deleted: number;
+  sync_status: 'pending' | 'synced';
 }
 
 export interface DigitalBill {
@@ -113,15 +118,15 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   digital_bills: EntityTable<DigitalBill, 'id'>;
 };
 
-// V8: Added updated_at and sync_status to all indexes for robust cloud sync
-db.version(8).stores({
-  products: 'id, name, category, updated_at, is_deleted', 
-  variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit', 
+// V9: Added sync_status to ALL tables to fix the "Error" state in SyncEngine
+db.version(9).stores({
+  products: 'id, name, category, updated_at, is_deleted, sync_status', 
+  variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit, sync_status', 
   sales: 'id, date, sync_status, updated_at, is_deleted',
-  sale_items: 'id, sale_id, variant_id, updated_at, is_deleted',
-  customers: 'id, name, phone, status, updated_at, is_deleted',
+  sale_items: 'id, sale_id, variant_id, updated_at, is_deleted, sync_status',
+  customers: 'id, name, phone, status, updated_at, is_deleted, sync_status',
   khata_transactions: 'id, customer_id, date, sync_status, updated_at, is_deleted',
-  bills: 'id, supplier, status, updated_at, is_deleted',
+  bills: 'id, supplier, status, updated_at, is_deleted, sync_status',
   digital_bills: 'id, type, bill_no, customer_name, date, sync_status, updated_at, is_deleted'
 });
 
