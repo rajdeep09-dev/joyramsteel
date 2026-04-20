@@ -93,12 +93,13 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
           await db.variants.add({
             id: uuidv4(),
             product_id: p.id,
-            size: "Standard",
-            stock: p.qty,
+            size: p.size,
+            unit: 'pcs',
+            stock: p.stock,
             dented_stock: 0,
             cost_price: p.msp,
             msp: p.msp,
-            base_price: p.mrp,
+            base_price: p.base_price,
             created_at: now,
             updated_at: now,
             is_deleted: 0

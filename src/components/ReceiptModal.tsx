@@ -181,7 +181,7 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
                       <div className="font-black text-zinc-900 uppercase tracking-tight leading-none">{item.productName}</div>
                       <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{item.size}</div>
                     </td>
-                    <td className="py-3 text-center font-black">x{item.qty}</td>
+                    <td className="py-3 text-center font-black">x{item.qty} {item.unit || 'pcs'}</td>
                     <td className="py-3 text-right font-black tracking-tighter text-zinc-900">₹{item.base_price * item.qty}</td>
                   </tr>
                 ))}

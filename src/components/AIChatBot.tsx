@@ -127,6 +127,7 @@ export function AIChatBot() {
               id: uuidv4(),
               product_id: prodId,
               size: "Standard",
+              unit: "pcs",
               stock: quantity,
               dented_stock: 0,
               cost_price: msp || 0,

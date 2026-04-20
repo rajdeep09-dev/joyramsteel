@@ -41,7 +41,7 @@ interface GstInvoiceModalProps {
 
 export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver }: GstInvoiceModalProps) {
   const invoiceRef = useRef<HTMLDivElement>(null);
-  const [items, setItems] = useState([{ desc: "", hsn: "7323", qty: "1", finalRate: "", gstRate: "18", taxableValue: 0, cgst: 0, sgst: 0, total: 0 }]);
+  const [items, setItems] = useState([{ desc: "", hsn: "7323", qty: "1", unit: "pcs", finalRate: "", gstRate: "18", taxableValue: 0, cgst: 0, sgst: 0, total: 0 }]);
   const [receiver, setReceiver] = useState({ name: "", address: "", gstin: "" });
   const [invoiceDetails, setInvoiceDetails] = useState({ no: "", date: new Date().toISOString().split('T')[0] });
 
@@ -55,6 +55,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
           desc: `${item.productName} - ${item.size}`.toUpperCase(),
           hsn: "7323",
           qty: item.qty.toString(),
+          unit: item.unit || 'pcs',
           finalRate: rate.toString(),
           gstRate: "18",
           taxableValue: parseFloat((taxable * item.qty).toFixed(2)),
@@ -82,6 +83,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
       desc: p ? `${p.productName} - ${p.size}`.toUpperCase() : "",
       hsn: "7323",
       qty: "1",
+      unit: p?.unit || 'pcs',
       finalRate: p ? p.base_price.toString() : "",
       gstRate: "18",
       taxableValue: 0, cgst: 0, sgst: 0, total: 0
@@ -145,7 +147,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
               <TabsTrigger value="preview" className="rounded-xl font-black text-[10px] uppercase tracking-widest">2. View</TabsTrigger>
             </TabsList>
             <TabsContent value="edit" className="flex-1 overflow-y-auto bg-white m-0 p-6 pb-32">
-              <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
+              <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
             </TabsContent>
             <TabsContent value="preview" className="flex-1 overflow-auto bg-zinc-950 flex items-start justify-center p-4 m-0 scrollbar-hide">
               <div className="origin-top transform-gpu scale-[0.42] transition-all">
@@ -158,7 +160,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
         {/* DESKTOP: Side-by-Side */}
         <div className="hidden md:flex flex-row h-full w-full overflow-hidden bg-zinc-950">
           <div className="w-[500px] h-full bg-white shrink-0 border-r border-zinc-200 overflow-y-auto p-10 scrollbar-hide">
-             <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
+             <FormContent receiver={receiver} setReceiver={setReceiver} invoiceDetails={invoiceDetails} setInvoiceDetails={setInvoiceDetails} items={items} setItems={setItems} addItem={addItem} updateItem={updateItem} removeItem={(i:number)=>setItems(items.filter((_,idx)=>idx!==i))} catalog={catalog} onClose={onClose} exportDoc={exportDoc} />
           </div>
           <div className="flex-1 h-full overflow-auto p-20 flex items-start justify-center scrollbar-hide">
              <div className="origin-top transform-gpu scale-[0.8] lg:scale-[0.9] xl:scale-100 transition-all">
@@ -172,7 +174,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
   );
 }
 
-function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails, items, addItem, updateItem, removeItem, catalog, onClose, exportDoc }: any) {
+function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails, items, setItems, addItem, updateItem, removeItem, catalog, onClose, exportDoc }: any) {
   return (
     <div className="flex flex-col gap-10">
       <div className="flex justify-between items-center">
@@ -225,9 +227,16 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
               <div className="grid grid-cols-4 gap-3">
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">HSN</span><Input value={item.hsn} onChange={e=>updateItem(idx,'hsn',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-bold" /></div>
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Qty</span><Input type="number" value={item.qty} onChange={e=>updateItem(idx,'qty',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-black" /></div>
-                <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Rate</span><Input type="number" value={item.finalRate} onChange={e=>updateItem(idx,'finalRate',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-black text-blue-600" /></div>
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Unit</span>
+                  <select value={item.unit} onChange={e=>updateItem(idx, 'unit', e.target.value)} className="w-full h-10 bg-white border border-zinc-200 text-xs rounded-xl font-black focus:ring-0 outline-none px-2 uppercase shadow-sm">
+                    <option value="pcs">PCS</option>
+                    <option value="kg">KG</option>
+                  </select>
+                </div>
                 <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Gst%</span><Input type="number" value={item.gstRate} onChange={e=>updateItem(idx,'gstRate',e.target.value)} className="h-10 bg-white border-zinc-200 text-xs rounded-xl font-black text-green-600" /></div>
               </div>
+              <div className="space-y-1"><span className="text-[8px] font-black text-zinc-400 block uppercase pl-2">Price Per {item.unit?.toUpperCase() || 'UNIT'}</span><Input type="number" value={item.finalRate} onChange={e=>updateItem(idx,'finalRate',e.target.value)} className="h-12 bg-white border border-zinc-200 text-sm rounded-2xl font-black text-blue-600" /></div>
               <Button onClick={()=>removeItem(idx)} variant="ghost" size="icon" className="absolute -top-3 -right-2 bg-white shadow-xl rounded-full h-10 w-10 text-red-500 border border-zinc-100 transition-all opacity-0 group-hover:opacity-100"><Trash2 className="h-4 w-4" /></Button>
             </div>
           ))}
@@ -239,7 +248,7 @@ function FormContent({ receiver, setReceiver, invoiceDetails, setInvoiceDetails,
         <DropdownMenu>
           <DropdownMenuTrigger render={
             <Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase">
-              <Download className="h-6 w-6 mr-3" /> Export
+              <Download className="h-6 w-6 mr-3 text-zinc-400" /> Export
             </Button>
           } />
           <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
@@ -282,13 +291,13 @@ const PreviewContent = React.forwardRef(({ receiver, invoiceDetails, items, tota
       </div>
       <table className="w-full border-collapse border-2 border-black mb-8 text-[11pt]">
         <thead><tr className="border-b-2 border-black font-black uppercase bg-zinc-50 text-[10pt]"><th className="border-r-2 border-black py-2 w-[12mm]">Sl.</th><th className="border-r-2 border-black py-2 text-left px-4">Description of Goods</th><th className="border-r-2 border-black py-2 w-[25mm]">HSN</th><th className="border-r-2 border-black py-2 w-[30mm]">Qty</th><th className="border-r-2 border-black py-2 w-[28mm]">Rate</th><th className="py-2 w-[40mm]">Amount Rs.</th></tr></thead>
-        <tbody className="font-bold uppercase">
+        <tbody className="font-bold uppercase text-center">
           {items.map((item: any, i: number) => (
-            <tr key={i} className="border-b border-zinc-200 h-[10mm] text-center italic">
+            <tr key={i} className="border-b border-zinc-200 h-[10mm] italic">
               <td className="border-r-2 border-black">{i+1}</td>
               <td className="border-r-2 border-black text-left px-4 font-black uppercase not-italic text-[10.5pt]">{item.desc}</td>
               <td className="border-r-2 border-black">{item.hsn}</td>
-              <td className="border-r-2 border-black">{item.qty} PCS</td>
+              <td className="border-r-2 border-black">{item.qty} {item.unit?.toUpperCase() || 'PCS'}</td>
               <td className="border-r-2 border-black">{item.taxableValue > 0 ? (item.taxableValue / (parseFloat(item.qty)||1)).toFixed(2) : ""}</td>
               <td className="text-right pr-2 text-[12pt] font-black">{item.taxableValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
             </tr>

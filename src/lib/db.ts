@@ -15,6 +15,7 @@ export interface Variant {
   id: string;
   product_id: string;
   size: string;
+  unit: 'pcs' | 'kg';
   stock: number;
   dented_stock: number;
   cost_price: number;
@@ -99,9 +100,9 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   bills: EntityTable<Bill, 'id'>;
 };
 
-db.version(5).stores({
+db.version(6).stores({
   products: 'id, name, category, updated_at, is_deleted', 
-  variants: 'id, product_id, size, barcode, updated_at, is_deleted', 
+  variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit', 
   sales: 'id, date, sync_status, updated_at, is_deleted',
   sale_items: 'id, sale_id, variant_id, updated_at, is_deleted',
   customers: 'id, name, phone, status, updated_at, is_deleted',
@@ -118,11 +119,11 @@ export const seedDatabase = async () => {
       { id: "p2", name: "3-Tier Steel Tiffin", category: "Tiffins", image_url: "https://images.unsplash.com/photo-1596484552993-9c8646394bb5?w=400&q=80", created_at: now, updated_at: now, is_deleted: 0 }
     ]);
     await db.variants.bulkAdd([
-      { id: "v1", product_id: "p1", size: "Size 14", stock: 12, dented_stock: 2, cost_price: 150, msp: 150, base_price: 200, created_at: now, updated_at: now, is_deleted: 0 },
-      { id: "v2", product_id: "p1", size: "Size 16", stock: 8, dented_stock: 0, cost_price: 180, msp: 180, base_price: 250, created_at: now, updated_at: now, is_deleted: 0 },
-      { id: "v3", product_id: "p1", size: "Size 18", stock: 3, dented_stock: 1, cost_price: 220, msp: 220, base_price: 300, created_at: now, updated_at: now, is_deleted: 0 },
-      { id: "v4", product_id: "p2", size: "Standard", stock: 24, dented_stock: 0, cost_price: 300, msp: 300, base_price: 450, created_at: now, updated_at: now, is_deleted: 0 },
-      { id: "v5", product_id: "p2", size: "Large", stock: 15, dented_stock: 3, cost_price: 400, msp: 400, base_price: 600, created_at: now, updated_at: now, is_deleted: 0 }
+      { id: "v1", product_id: "p1", size: "Size 14", unit: 'pcs', stock: 12, dented_stock: 2, cost_price: 150, msp: 150, base_price: 200, created_at: now, updated_at: now, is_deleted: 0 },
+      { id: "v2", product_id: "p1", size: "Size 16", unit: 'pcs', stock: 8, dented_stock: 0, cost_price: 180, msp: 180, base_price: 250, created_at: now, updated_at: now, is_deleted: 0 },
+      { id: "v3", product_id: "p1", size: "Size 18", unit: 'pcs', stock: 3, dented_stock: 1, cost_price: 220, msp: 220, base_price: 300, created_at: now, updated_at: now, is_deleted: 0 },
+      { id: "v4", product_id: "p2", size: "Standard", unit: 'pcs', stock: 24, dented_stock: 0, cost_price: 300, msp: 300, base_price: 450, created_at: now, updated_at: now, is_deleted: 0 },
+      { id: "v5", product_id: "p2", size: "Large", unit: 'pcs', stock: 15, dented_stock: 3, cost_price: 400, msp: 400, base_price: 600, created_at: now, updated_at: now, is_deleted: 0 }
     ]);
   }
 

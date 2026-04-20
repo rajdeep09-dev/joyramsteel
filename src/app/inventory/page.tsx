@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import imageCompression from 'browser-image-compression';
 import { BulkImportModal } from "@/components/BulkImportModal";
+import { cn } from "@/lib/utils";
 
 export default function Inventory() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export default function Inventory() {
   const [newPrice, setNewPrice] = useState("");
   const [newMsp, setNewMsp] = useState("");
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [newUnit, setNewUnit] = useState<"pcs" | "kg">("pcs");
   const [newProductName, setNewProductName] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("Buckets");
 
@@ -145,6 +147,7 @@ export default function Inventory() {
         id: uuidv4(),
         product_id: productId,
         size: newSize,
+        unit: newUnit,
         stock: parseInt(newStock),
         dented_stock: 0,
         cost_price: parseInt(newMsp),
@@ -156,7 +159,7 @@ export default function Inventory() {
         is_deleted: 0
       });
       toast.success("Variant added!");
-      setNewSize(""); setNewStock(""); setNewPrice(""); setNewMsp(""); setNewImageUrl("");
+      setNewSize(""); setNewStock(""); setNewPrice(""); setNewMsp(""); setNewImageUrl(""); setNewUnit("pcs");
       setCapturedImage(null); setCapturedFile(null);
     } catch (e) {
       toast.error("Database error");
@@ -299,9 +302,16 @@ export default function Inventory() {
                               </Tabs>
                               <div className="grid grid-cols-2 gap-6 text-left">
                                 <div className="space-y-2"><Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Size / Label</Label><Input value={newSize} onChange={e => setNewSize(e.target.value)} placeholder="e.g. Size 20" className="h-14 rounded-2xl" /></div>
+                                <div className="space-y-2">
+                                  <Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Unit</Label>
+                                  <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-100 rounded-xl h-14">
+                                    <Button variant="ghost" className={cn("rounded-lg h-full font-black text-[10px] uppercase transition-all", newUnit === 'pcs' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400 hover:text-zinc-600")} onClick={() => setNewUnit('pcs')}>PCS</Button>
+                                    <Button variant="ghost" className={cn("rounded-lg h-full font-black text-[10px] uppercase transition-all", newUnit === 'kg' ? "bg-white shadow-sm text-zinc-900" : "text-zinc-400 hover:text-zinc-600")} onClick={() => setNewUnit('kg')}>KG</Button>
+                                  </div>
+                                </div>
                                 <div className="space-y-2"><Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Stock</Label><Input type="number" value={newStock} onChange={e => setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl" /></div>
                                 <div className="space-y-2"><Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Price (₹)</Label><Input type="number" value={newPrice} onChange={e => setNewPrice(e.target.value)} className="h-14 rounded-2xl text-blue-600 font-black" /></div>
-                                <div className="space-y-2"><Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Bottom (₹)</Label><Input type="number" value={newMsp} onChange={e => setNewMsp(e.target.value)} className="h-14 rounded-2xl text-red-500 font-black" /></div>
+                                <div className="space-y-2 col-span-2"><Label className="font-black text-[10px] uppercase tracking-widest text-zinc-400">Bottom (₹)</Label><Input type="number" value={newMsp} onChange={e => setNewMsp(e.target.value)} className="h-14 rounded-2xl text-red-500 font-black" /></div>
                               </div>
                             </div>
                             <Button onClick={() => handleAddVariant(product.id)} className="w-full h-20 text-xl rounded-[1.5rem] bg-zinc-900 text-white font-black uppercase tracking-widest">Save Variant</Button>

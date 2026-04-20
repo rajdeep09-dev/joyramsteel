@@ -49,7 +49,6 @@ export default function POS() {
   const [gstInitialItems, setGstInitialItems] = useState<any[]>([]);
 
   const catalogData = useLiveQuery(async () => {
-    // Production Fix: Filter out deleted products and variants
     const prods = await db.products.where('is_deleted').equals(0).toArray();
     const vars = await db.variants.where('is_deleted').equals(0).toArray();
     
@@ -158,7 +157,6 @@ export default function POS() {
           
           const variant = await db.variants.get(item.id);
           if (variant) {
-            // Production Fix: Reduce stock and update timestamp
             await db.variants.update(item.id, { 
               stock: variant.stock - item.qty,
               updated_at: now 
@@ -250,7 +248,7 @@ export default function POS() {
                        </div>
                        <div className="flex-1 min-w-0">
                          <div className="font-black text-zinc-900 truncate uppercase tracking-tight">{item.productName}</div>
-                         <div className="text-[10px] font-black text-zinc-400 uppercase mt-0.5">{item.size} &bull; <span className="text-emerald-600">{item.stock} IN STOCK</span></div>
+                         <div className="text-[10px] font-black text-zinc-400 uppercase mt-0.5">{item.size} &bull; <span className="text-emerald-600">{item.stock} {item.unit?.toUpperCase() || 'PCS'} IN STOCK</span></div>
                          <div className="font-black text-zinc-900 mt-1">₹{item.base_price}</div>
                        </div>
                      </DropdownMenuItem>
@@ -290,7 +288,7 @@ export default function POS() {
                             </div>
                             <div>
                               <div className="font-black text-zinc-900 group-hover:text-zinc-600 transition-colors text-lg tracking-tight">{item.productName}</div>
-                              <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{item.size} &bull; <span className="text-emerald-600">{item.stock} LEFT</span></div>
+                              <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">{item.size} &bull; <span className="text-emerald-600">{item.stock} {item.unit?.toUpperCase() || 'PCS'} LEFT</span></div>
                             </div>
                           </div>
                           <div className="font-black text-zinc-900 text-xl tracking-tighter">₹{item.base_price}</div>
@@ -344,7 +342,7 @@ export default function POS() {
                   <div className="p-5 flex-1 flex flex-col gap-1">
                     <h4 className="font-black text-zinc-900 leading-tight text-lg group-hover:text-blue-600 transition-colors">{v.productName}</h4>
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{v.size}</p>
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-auto pt-2">{v.stock} IN STOCK</p>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-auto pt-2">{v.stock} {v.unit?.toUpperCase() || 'PCS'} IN STOCK</p>
                   </div>
                 </motion.div>
               ))}
@@ -392,14 +390,14 @@ export default function POS() {
                       
                       <div className="flex-1 min-w-0">
                         <h4 className="font-black text-zinc-900 text-sm truncate uppercase tracking-tight">{item.productName}</h4>
-                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{item.size} &bull; ₹{item.base_price}</div>
+                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{item.size} &bull; ₹{item.base_price} / {item.unit || 'pcs'}</div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <div className="font-black text-zinc-900 tracking-tighter text-lg">₹{item.base_price * item.qty}</div>
                         <div className="flex items-center bg-zinc-100 p-1 rounded-xl shadow-inner h-9">
                           <button onClick={() => updateQty(item.id, -1)} className="w-8 h-full flex items-center justify-center hover:bg-white rounded-lg text-zinc-400 hover:text-zinc-900 transition-all active:scale-75"><Minus className="h-3 w-3" /></button>
-                          <span className="w-8 text-center font-black text-xs text-zinc-900">{item.qty}</span>
+                          <span className="w-12 text-center font-black text-xs text-zinc-900">{item.qty} {item.unit || 'pcs'}</span>
                           <button onClick={() => updateQty(item.id, 1)} className="w-8 h-full flex items-center justify-center hover:bg-white rounded-lg text-zinc-400 hover:text-zinc-900 transition-all active:scale-75"><Plus className="h-3 w-3" /></button>
                         </div>
                       </div>

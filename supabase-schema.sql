@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS variants (
     id TEXT PRIMARY KEY,
     product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
     size TEXT NOT NULL,
+    unit TEXT DEFAULT 'pcs',
     stock NUMERIC NOT NULL DEFAULT 0,
     dented_stock NUMERIC NOT NULL DEFAULT 0,
     cost_price NUMERIC NOT NULL DEFAULT 0,
