@@ -79,7 +79,11 @@ export function SyncEngine() {
           }
         }
 
-        setLastSyncTime(new Date().toISOString());
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('database-synced', { detail: now }));
+        }
 
       } catch (err) {
         console.error("Critical Sync Error:", err);
