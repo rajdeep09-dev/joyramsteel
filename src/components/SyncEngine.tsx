@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
+/**
+ * Enterprise Sync Engine (Version 3.0)
+ * Optimized for Deletion Integrity & CRDT
+ */
 export function SyncEngine() {
   const isSyncing = useRef(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
@@ -19,8 +23,6 @@ export function SyncEngine() {
 
     const handleManualSync = () => performSync(true);
     window.addEventListener('request-sync', handleManualSync);
-
-    // Initial sync on mount
     performSync();
 
     return () => {
@@ -31,10 +33,7 @@ export function SyncEngine() {
 
   const performSync = async (isForce = false) => {
     if (isSyncing.current) return;
-    
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-      return;
-    }
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) return;
 
     isSyncing.current = true;
     window.dispatchEvent(new CustomEvent('sync-status', { detail: 'syncing' }));
@@ -52,9 +51,8 @@ export function SyncEngine() {
       ];
 
       for (const table of tables) {
-        // 1. PULL: Only pull active items or deletions we don't have yet
+        // 1. PULL & PURGE
         let pullQuery = supabase.from(table.name).select('*');
-        
         if (!isForce && lastSyncTime) {
           pullQuery = pullQuery.gt('updated_at', lastSyncTime);
         }
@@ -63,17 +61,16 @@ export function SyncEngine() {
         
         if (!pullError && cloudChanges && cloudChanges.length > 0) {
           for (const cloudItem of cloudChanges) {
-            const localItem = await (table.db as any).get(cloudItem.id);
-            const cloudClock = cloudItem.version_clock || 0;
-            const localClock = localItem?.version_clock || 0;
-            
-            // CRITICAL: If the cloud item is deleted, remove it locally immediately 
-            // OR update local status if we use soft-deletes
+            // CRITICAL: Deletion Integrity
             if (cloudItem.is_deleted === 1) {
               await (table.db as any).delete(cloudItem.id);
               continue;
             }
 
+            const localItem = await (table.db as any).get(cloudItem.id);
+            const cloudClock = cloudItem.version_clock || 0;
+            const localClock = localItem?.version_clock || 0;
+            
             if (!localItem || cloudClock > localClock || (cloudClock === localClock && new Date(cloudItem.updated_at) > new Date(localItem.updated_at))) {
               await (table.db as any).put({ ...cloudItem, sync_status: 'synced' });
             }
@@ -81,9 +78,7 @@ export function SyncEngine() {
         }
 
         // 2. PUSH
-        const toPush = await (table.db as any)
-          .where('sync_status').equals('pending')
-          .toArray();
+        const toPush = await (table.db as any).where('sync_status').equals('pending').toArray();
 
         if (toPush.length > 0) {
           const cleanedPush = toPush.map((item: any) => {
@@ -92,7 +87,6 @@ export function SyncEngine() {
           });
 
           const { error: pushError } = await supabase.from(table.name).upsert(cleanedPush);
-          
           if (!pushError) {
             const syncedItems = toPush.map((item: any) => ({ ...item, sync_status: 'synced' }));
             await (table.db as any).bulkPut(syncedItems);

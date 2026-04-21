@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, WifiOff, Cloud, Loader2, Clock, RefreshCcw, ChevronDown, DatabaseBackup, AlertCircle, Zap, ShieldCheck, Moon, Sun } from "lucide-react";
+import { Bell, WifiOff, Cloud, Loader2, Clock, RefreshCcw, ChevronDown, DatabaseBackup, AlertCircle, Zap, ShieldCheck, Moon, Sun, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 export function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [lang, setLang] = useState<'en' | 'bn'>('en');
   const [isOnline, setIsOnline] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'error'>('idle');
@@ -33,6 +34,8 @@ export function Header() {
   
   useEffect(() => {
     setMounted(true);
+    const savedLang = localStorage.getItem('app_lang') as 'en' | 'bn';
+    if (savedLang) setLang(savedLang);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     const handleSyncTime = (e: any) => setLastSync(e.detail);
     const handleSyncStatus = (e: any) => setSyncState(e.detail);
@@ -54,6 +57,14 @@ export function Header() {
     };
   }, []);
 
+  const toggleLang = () => {
+    const newLang = lang === 'en' ? 'bn' : 'en';
+    setLang(newLang);
+    localStorage.setItem('app_lang', newLang);
+    toast.success(newLang === 'bn' ? "ভাষা পরিবর্তন করা হয়েছে" : "Language Switched to English");
+    window.dispatchEvent(new CustomEvent('lang-changed', { detail: newLang }));
+  };
+
   const handleClearCache = async () => {
     if (confirm("DANGER: Clear local cache?")) {
         try {
@@ -70,38 +81,60 @@ export function Header() {
     window.dispatchEvent(new Event('request-sync'));
   };
 
-  let title = "Command Center";
-  if (pathname === "/pos") title = "POS Checkout";
-  else if (pathname === "/inventory") title = "Master Catalog";
-  else if (pathname === "/khata") title = "Digital Khata";
-  else if (pathname === "/vault") title = "GST Vault";
-  else if (pathname === "/history") title = "Sales Archives";
+  const translations = {
+    en: {
+      title: "System Console",
+      pos: "POS Checkout",
+      inv: "Master Catalog",
+      khata: "Digital Khata",
+      vault: "GST Vault",
+      history: "Archives",
+      manual: "Admin Manual",
+      welcome: "Welcome to Joy Ram Steel Enterprise Suite. This guide will help you manage your business like a pro.",
+      btn: "Got it, Let's work"
+    },
+    bn: {
+      title: "সিস্টেম কনসোল",
+      pos: "পিওএস চেকআউট",
+      inv: "মাস্টার ক্যাটালগ",
+      khata: "ডিজিটাল খাতা",
+      vault: "জিএসটি ভল্ট",
+      history: "আর্কাইভস",
+      manual: "অ্যাডমিন ম্যানুয়াল",
+      welcome: "জয় রাম স্টিল এন্টারপ্রাইজ সুটে আপনাকে স্বাগতম। এই নির্দেশিকাটি আপনাকে আপনার ব্যবসা পরিচালনায় সাহায্য করবে।",
+      btn: "বুঝেছি, কাজ শুরু করি"
+    }
+  };
 
-  const manualContent = [
+  const t = translations[lang];
+
+  let displayTitle = t.title;
+  if (pathname === "/pos") displayTitle = t.pos;
+  else if (pathname === "/inventory") displayTitle = t.inv;
+  else if (pathname === "/khata") displayTitle = t.khata;
+  else if (pathname === "/vault") displayTitle = t.vault;
+  else if (pathname === "/history") displayTitle = t.history;
+
+  const manualSteps = [
     {
-      title: "🚀 POS (Billing)",
-      desc: "Scan barcodes or search items. Use the 'Bargain Slider' for discounts. Press Alt+P to pay. The system handles Kg and Combo items automatically.",
+      en: { title: "🚀 POS (Billing)", desc: "Scan barcodes or search items. Use the 'Bargain Slider' for discounts. The system handles Kg and Combo items automatically." },
+      bn: { title: "🚀 পিওএস (বিলিং)", desc: "বারকোড স্ক্যান করুন বা আইটেম খুঁজুন। ডিসকাউন্টের জন্য 'Bargain Slider' ব্যবহার করুন। সিস্টেম ওজন (Kg) এবং কম্বো আইটেম অটো হ্যান্ডেল করে।" },
       color: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
     },
     {
-      title: "📦 Inventory",
-      desc: "Add brands as 'Master Products' first. Then add 'Variants' (sizes like 5L, 10L) underneath them. Use our Pricing Templates for 1-click setup.",
+      en: { title: "📦 Inventory", desc: "Add brands as 'Master Products' first. Then add 'Variants' (sizes) underneath. Auto-barcode generates strings starting with 890." },
+      bn: { title: "📦 ইনভেন্টরি", desc: "প্রথমে 'Master Products' হিসেবে ব্র্যান্ড যোগ করুন। তারপর তার নিচে 'Variants' (সাইজ) যোগ করুন। অটো-বারকোড ৮৯০ দিয়ে শুরু হওয়া কোড তৈরি করে।" },
       color: "bg-zinc-50 dark:bg-zinc-900/40 text-zinc-700 dark:text-zinc-400"
     },
     {
-      title: "📘 Digital Khata",
-      desc: "Track Market Credit (Udhar). Record payments from customers and send them 'Gentle Reminders' on WhatsApp with one click.",
+      en: { title: "📘 Digital Khata", desc: "Track Market Credit. Record payments and send WhatsApp reminders when balance is high." },
+      bn: { title: "📘 ডিজিটাল খাতা", desc: "মার্কেট ক্রেডিট ট্র্যাক করুন। পেমেন্ট রেকর্ড করুন এবং ব্যালেন্স বেশি হলে হোয়াটসঅ্যাপ রিমাইন্ডার পাঠান।" },
       color: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
     },
     {
-      title: "🛡️ GST Vault",
-      desc: "No more paper mess! Snap photos of supplier bills. All GST invoices you generate are also stored here automatically.",
+      en: { title: "🛡️ GST Vault", desc: "Digitize supplier bills using camera. All generated GST/eWay bills are also archived here." },
+      bn: { title: "🛡️ জিএসটি ভল্ট", desc: "ক্যামেরা ব্যবহার করে সাপ্লায়ার বিল ডিজিটাল করুন। সব তৈরি করা জিএসটি/ইওয়ে বিল এখানে অটো সেভ হয়।" },
       color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
-    },
-    {
-      title: "🔄 Offline-First",
-      desc: "If the internet is down, don't stop! The app saves everything locally. Watch the sync icon in the header turn green when you're back online.",
-      color: "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400"
     }
   ];
 
@@ -111,25 +144,25 @@ export function Header() {
         <DialogContent className="sm:max-w-[600px] rounded-[2.5rem] bg-white dark:bg-zinc-900 border-none shadow-2xl p-10 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-3xl font-black italic tracking-tighter uppercase mb-4 flex items-center gap-3 dark:text-white">
-               <ShieldCheck className="h-8 w-8 text-blue-600" /> Admin Manual
+               <ShieldCheck className="h-8 w-8 text-blue-600" /> {t.manual}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-relaxed border-b border-zinc-100 dark:border-zinc-800 pb-6">Master the Joy Ram Steel business suite with these quick tips.</p>
-            {manualContent.map((step, i) => (
+            <p className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-relaxed border-b border-zinc-100 dark:border-zinc-800 pb-6">{t.welcome}</p>
+            {manualSteps.map((step, i) => (
               <div key={i} className={cn("p-6 rounded-3xl border border-zinc-100 dark:border-zinc-800 transition-all hover:shadow-xl", step.color)}>
-                 <h4 className="font-black text-lg mb-2 uppercase italic tracking-tight">{step.title}</h4>
-                 <p className="text-[11px] font-bold leading-relaxed opacity-80">{step.desc}</p>
+                 <h4 className="font-black text-lg mb-2 uppercase italic tracking-tight">{step[lang].title}</h4>
+                 <p className="text-[11px] font-bold leading-relaxed opacity-80">{step[lang].desc}</p>
               </div>
             ))}
-            <Button onClick={()=>setIsManualOpen(false)} className="w-full h-16 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest mt-6 shadow-2xl">Got it, Let's work</Button>
+            <Button onClick={()=>setIsManualOpen(false)} className="w-full h-16 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest mt-6 shadow-2xl">{t.btn}</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <div className="flex items-center gap-4 md:gap-6">
         <div className="flex flex-col">
-            <span className="text-xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tighter uppercase italic leading-none truncate max-w-[120px] md:max-w-none">{title}</span>
+            <span className="text-xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tighter uppercase italic leading-none truncate max-w-[150px] md:max-w-none">{displayTitle}</span>
             <div className="mt-1 flex items-center gap-2 text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
                 <Clock className="h-3 w-3 shrink-0" />
                 <span className="tabular-nums">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -138,12 +171,21 @@ export function Header() {
       </div>
       
       <div className="flex items-center gap-2 md:gap-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleLang}
+          className="rounded-2xl h-10 w-10 md:h-12 md:w-12 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 transition-all font-black text-[10px] uppercase"
+        >
+          {lang === 'en' ? 'BN' : 'EN'}
+        </Button>
+
         {mounted && (
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-2xl h-10 w-10 md:h-12 md:w-12 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 transition-all shadow-inner"
+            className="rounded-2xl h-10 w-10 md:h-12 md:w-12 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 transition-all shadow-inner"
           >
             {theme === 'dark' ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-zinc-900" />}
           </Button>
@@ -171,7 +213,7 @@ export function Header() {
             </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button onClick={()=>setIsManualOpen(true)} variant="ghost" size="icon" className="relative bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-800 h-10 w-10 md:h-12 md:w-12 shadow-inner shrink-0">
+        <Button onClick={()=>setIsManualOpen(true)} variant="ghost" size="icon" className="relative bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-2xl border border-zinc-100 dark:border-zinc-700 h-10 w-10 md:h-12 md:w-12 shadow-inner shrink-0">
           <Bell className="h-5 w-5 text-zinc-900 dark:text-white" />
           <span className="absolute top-3 right-3 h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-red-500 border-2 border-white dark:border-zinc-950" />
         </Button>
