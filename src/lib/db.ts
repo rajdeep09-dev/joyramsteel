@@ -28,6 +28,7 @@ export interface Variant {
   pricing_type: 'standard' | 'bundle';
   bundle_qty?: number;
   bundle_price?: number;
+  units_per_combo?: number; // Total units reduced from stock per sale
   created_at: string;
   updated_at: string;
   is_deleted: number;
@@ -141,8 +142,8 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   parked_carts: EntityTable<ParkedCart, 'id'>;
 };
 
-// V12: Added return support
-db.version(12).stores({
+// V13: Added units_per_combo for pack-to-unit mapping
+db.version(13).stores({
   products: 'id, name, category, updated_at, is_deleted, sync_status, version_clock', 
   variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit, sync_status, version_clock', 
   sales: 'id, date, sync_status, updated_at, is_deleted, version_clock, is_returned',

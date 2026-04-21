@@ -92,13 +92,16 @@ export default function POS() {
   const addToCart = (variant: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === variant.id);
-      let newQty = existing ? (variant.unit === 'kg' ? 1 : existing.qty + 1) : 1;
+      const unitsToAdd = variant.units_per_combo || 1;
+      
+      let newQty = existing ? (variant.unit === 'kg' ? 1 : existing.qty + unitsToAdd) : unitsToAdd;
+      
       if (newQty > variant.stock) { toast.error("Stock limit reached!"); return prev; }
       const lineTotal = calculateItemTotal(variant, newQty);
       if (existing) return prev.map(item => item.id === variant.id ? { ...item, qty: newQty, line_total: lineTotal } : item);
       return [...prev, { ...variant, qty: newQty, line_total: lineTotal }];
     });
-    toast.success(`${variant.productName} added`);
+    toast.success(`${variant.productName} added (${variant.units_per_combo || 1} units)`);
   };
 
   const updateQty = (id: string, delta: number) => {

@@ -53,6 +53,7 @@ export default function Inventory() {
   const [newPricingType, setNewPricingType] = useState<'standard' | 'bundle'>('standard');
   const [newBundleQty, setNewBundleQty] = useState("");
   const [newBundlePrice, setNewBundlePrice] = useState("");
+  const [newUnitsPerCombo, setNewUnitsPerCombo] = useState("1");
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -103,6 +104,7 @@ export default function Inventory() {
         pricing_type: newPricingType, 
         bundle_qty: newPricingType === 'bundle' ? parseInt(newBundleQty) : undefined,
         bundle_price: newPricingType === 'bundle' ? parseInt(newBundlePrice) : undefined,
+        units_per_combo: parseInt(newUnitsPerCombo) || 1,
         created_at: now,
         updated_at: now,
         is_deleted: 0,
@@ -255,18 +257,23 @@ export default function Inventory() {
 
       <Dialog open={!!selectedProductId} onOpenChange={o => !o && setSelectedProductId(null)}>
         <DialogContent className="rounded-[2.5rem] p-10 max-w-md bg-white dark:bg-zinc-900 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
-           <DialogHeader><DialogTitle className="text-2xl font-black italic uppercase dark:text-white">Deploy Variant</DialogTitle></DialogHeader>
+           <DialogHeader>
+              <DialogTitle className="text-2xl font-black italic uppercase dark:text-white leading-tight">
+                DEPLOY VARIANT<br/>
+                <span className="text-blue-600">
+                  {products.find(p => p.id === selectedProductId)?.name || "SELECT BRAND"}
+                </span>
+              </DialogTitle>
+           </DialogHeader>
            <div className="space-y-6 pt-6">
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Select Parent Brand</Label>
-                 <Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}>
-                   <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"><SelectValue placeholder="Brand Name" /></SelectTrigger>
-                   <SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">{products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}</SelectContent>
-                 </Select>
-              </div>
+              <Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}>
+                <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"><SelectValue placeholder="Brand Name" /></SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">{products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}</SelectContent>
+              </Select>
 
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Strategy</Label>
+              {/* Simplified Pricing Selector with asking logic */}
+              <div className="space-y-3">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Select Pricing Strategy</Label>
                  <div className="grid grid-cols-3 gap-2">
                    {['standard', 'bundle', 'weight'].map(m => (
                      <button key={m} type="button" onClick={()=>setPricingMode(m as any)} className={cn("h-12 rounded-xl text-[8px] font-black uppercase tracking-tighter border transition-all", (newPricingType === m || (m === 'weight' && newUnit === 'kg')) ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-lg scale-105" : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:border-zinc-700")}>
@@ -276,9 +283,15 @@ export default function Inventory() {
                  </div>
               </div>
 
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size Details</Label>
-                 <Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre or Pack of 4" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size Details</Label>
+                    <Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Units in Pack</Label>
+                    <Input type="number" value={newUnitsPerCombo} onChange={e=>setNewUnitsPerCombo(e.target.value)} placeholder="1" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
