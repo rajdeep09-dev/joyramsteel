@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Plus, Search, PackageOpen, Tag, Barcode, Camera, 
+  Plus, Search, PackageOpen, Tag, Barcode as BarcodeIcon, Camera, 
   UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, 
-  Loader2, Info, Edit2, LayoutGrid, List, CheckCircle2, X
+  Loader2, Info, Edit2, LayoutGrid, List, CheckCircle2, X, Download
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,10 +40,14 @@ import { ProductCard } from "@/components/ProductCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarcodeViewModal } from "@/components/BarcodeViewModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Barcode from "react-barcode";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 
 export default function Inventory() {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isExporting, setIsExporting] = useState(false);
   
   // Master Product Modal
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
@@ -71,6 +75,26 @@ export default function Inventory() {
 
   const products = useLiveQuery(() => db.products.where('is_deleted').equals(0).toArray()) || [];
   const variants = useLiveQuery(() => db.variants.where('is_deleted').equals(0).toArray()) || [];
+
+  const handleExportCatalog = async () => {
+    if (variants.length === 0) return toast.error("No items to export");
+    setIsExporting(true);
+    const id = toast.loading("Generating Master Catalog...");
+    try {
+      const element = document.getElementById('catalog-export-template');
+      if (!element) throw new Error("Template missing");
+      
+      const url = await toPng(element, { pixelRatio: 2, backgroundColor: '#ffffff' });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.addImage(url, 'PNG', 0, 0, 210, 297);
+      pdf.save(`JoyRamSteel_Catalog_${new Date().toLocaleDateString()}.pdf`);
+      toast.success("Catalog Exported", { id });
+    } catch {
+      toast.error("Export Failed", { id });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleOpenMasterModal = (p?: any) => {
     if (p) {
@@ -123,7 +147,7 @@ export default function Inventory() {
       setNewUnitsPerCombo(v.units_per_combo?.toString() || "1");
     } else {
       setEditingVariant(null);
-      setSelectedProductId(null);
+      setSelectedProductId(products[0]?.id || null);
       setNewSize("");
       setNewStock("");
       setNewPrice("");
@@ -138,9 +162,8 @@ export default function Inventory() {
   };
 
   const handleSaveVariant = async () => {
-    // 1. Loose Validation (Allow MSP to be empty, default to Retail Price)
     if (!selectedProductId || !newSize || !newStock || !newPrice) {
-      toast.error("Please fill required fields: Brand, Size, Stock, and Price");
+      toast.error("Please fill required fields");
       return;
     }
 
@@ -149,7 +172,7 @@ export default function Inventory() {
     
     try {
       if (capturedFile) {
-        toast.info("Authorising Media Cloud...", { id: 'v-save' });
+        toast.info("Uploading Media...", { id: 'v-save' });
         url = await uploadCompressedToCloudinary(capturedFile);
       }
       
@@ -175,7 +198,7 @@ export default function Inventory() {
 
       if (editingVariant) {
         await db.variants.update(editingVariant.id, payload);
-        toast.success("Variant Updated Successfully", { id: 'v-save' });
+        toast.success("Variant Updated", { id: 'v-save' });
       } else {
         await db.variants.add({
           id: uuidv4(),
@@ -185,22 +208,19 @@ export default function Inventory() {
           is_deleted: 0,
           version_clock: Date.now()
         });
-        toast.success("New Variant Deployed", { id: 'v-save' });
+        toast.success("Variant Deployed", { id: 'v-save' });
       }
 
-      // 2. Full State Reset
       setEditingVariant(null);
       setSelectedProductId(null);
       setNewSize("");
       setNewStock("");
       setNewPrice("");
       setNewMsp("");
-      setNewBundleQty("");
-      setNewBundlePrice("");
       setCapturedFile(null);
     } catch (e) {
       console.error(e);
-      toast.error("Deployment Interrupted", { id: 'v-save' }); 
+      toast.error("Save Failed", { id: 'v-save' }); 
     } finally { 
       setIsUploading(false); 
     }
@@ -237,6 +257,38 @@ export default function Inventory() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-20 text-left px-4 md:px-0">
       <BulkImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
+      
+      {/* Hidden Catalog Template for Export */}
+      <div className="fixed -left-[9999px] top-0 pointer-events-none">
+        <div id="catalog-export-template" className="w-[210mm] min-h-[297mm] bg-white p-10 text-black flex flex-col font-sans">
+          <div className="flex justify-between items-end border-b-4 border-black pb-8 mb-10">
+             <div className="flex items-center gap-4">
+               <img src="/joyramlogo.png" className="w-16 h-16 rounded-full" />
+               <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Joy Ram Steel</h1>
+             </div>
+             <p className="font-black uppercase text-xs tracking-widest opacity-40">Official Stock Catalog</p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-6">
+            {filteredVariants.map(v => (
+              <div key={v.id} className="border border-zinc-100 p-4 rounded-xl flex flex-col items-center gap-3">
+                 <div className="h-24 w-24 bg-zinc-50 rounded-lg flex items-center justify-center overflow-hidden border border-zinc-100">
+                    <img src={v.image_url || v.parentImage || '/joyramlogo.png'} className="w-full h-full object-cover mix-blend-multiply" />
+                 </div>
+                 <div className="text-center">
+                    <p className="font-black text-[10px] uppercase truncate w-40 leading-none mb-1">{v.productName}</p>
+                    <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">{v.size}</p>
+                    <p className="text-lg font-black tracking-tighter mt-1 italic">₹{v.base_price}</p>
+                 </div>
+                 <div className="scale-[0.6] origin-top h-14 overflow-hidden">
+                    <Barcode value={v.barcode || "000"} width={1} height={40} fontSize={10} background="transparent" />
+                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <BarcodeViewModal 
         variant={selectedBarcodeItem} 
         isOpen={!!selectedBarcodeItem} 
@@ -273,14 +325,18 @@ export default function Inventory() {
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest opacity-60">Digital Catalog Management</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="flex-1 sm:flex-none h-11 rounded-xl font-bold uppercase text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
-          <Button onClick={() => handleOpenMasterModal()} className="flex-1 sm:flex-none h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold uppercase text-[10px] tracking-widest px-6 shadow-xl transition-transform active:scale-95">
+          <Button variant="outline" onClick={handleExportCatalog} disabled={isExporting} className="h-11 rounded-xl font-bold uppercase text-[9px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white flex gap-2">
+             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Export Catalog
+          </Button>
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-11 rounded-xl font-bold uppercase text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
+          <Button onClick={() => handleOpenMasterModal()} className="h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold uppercase text-[10px] tracking-widest px-6 shadow-xl transition-transform active:scale-95">
              <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Master Product Management */}
         <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 bg-white dark:bg-zinc-900 overflow-hidden relative border">
            <div className="absolute top-0 right-0 p-4 opacity-5"><PackageOpen className="h-20 w-20 dark:text-white" /></div>
            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Master Brands ({products.length})</h4>
@@ -369,7 +425,6 @@ export default function Inventory() {
               onClick={() => {
                 if (products.length > 0) {
                   handleOpenVariantModal();
-                  setSelectedProductId(products[0].id);
                 } else {
                   toast.error("Please add a Master Brand first!");
                 }
@@ -378,7 +433,6 @@ export default function Inventory() {
                <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-inner"><Plus className="h-8 w-8 text-zinc-400" /></div>
                <span className="text-[10px] font-black uppercase tracking-widest">New Variant</span>
             </Button>
-
           </div>
         ) : (
           <Card className="border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 border">
@@ -404,7 +458,7 @@ export default function Inventory() {
                         <TableCell className="text-right font-black text-xl tracking-tighter dark:text-white">₹{v.base_price}</TableCell>
                         <TableCell className="pr-8 text-right">
                            <div className="flex gap-2 justify-end">
-                              <Button variant="ghost" size="icon" onClick={() => setSelectedBarcodeItem(v)} className="h-10 w-10 text-zinc-400"><Barcode className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedBarcodeItem(v)} className="h-10 w-10 text-zinc-400"><BarcodeIcon className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => handleOpenVariantModal(v)} className="h-10 w-10 text-blue-500 hover:bg-blue-50"><Edit2 className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Delete?")) await db.variants.update(v.id, { is_deleted: 1 }); }} className="h-10 w-10 text-red-400 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
                            </div>
@@ -479,6 +533,7 @@ export default function Inventory() {
                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Opening Stock</Label>
                    <Input type="number" value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
                 </div>
+                
                 <div className="space-y-2">
                    {newPricingType === 'standard' ? (
                      <>
