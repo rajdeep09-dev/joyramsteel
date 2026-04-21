@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,8 @@ import {
   Mail,
   MapPin,
   MessageSquare,
-  FileBadge
+  FileBadge,
+  Loader2
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -29,8 +30,7 @@ import {
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import { uploadCompressedToCloudinary } from "@/lib/cloudinary";
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -48,44 +48,48 @@ interface ReceiptModalProps {
 
 export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }: ReceiptModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   if (!isOpen || !saleData?.id) return null;
 
   const handleSendToWhatsApp = async () => {
-    const phone = prompt("Enter Customer WhatsApp Number (with country code, e.g. 919876543210):");
-    if (!phone) return;
+    const rawPhone = prompt("Enter Customer WhatsApp Number (e.g. 9876543210):");
+    if (!rawPhone) return;
+
+    // 1. Smart Phone Logic: Auto-prefix 91 if 10 digits
+    let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
 
     if (!receiptRef.current) return;
-    toast.info("Preparing bill for sharing...");
+    setIsSharing(true);
+    const id = toast.loading("Authorising Media Cloud...");
 
     try {
-      // 1. Generate Image
-      const dataUrl = await toPng(receiptRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
-      
-      // 2. Upload to Supabase temporary bucket
+      // 2. Generate high-quality image
+      const dataUrl = await toPng(receiptRef.current, { pixelRatio: 2, backgroundColor: '#ffffff' });
       const blob = await (await fetch(dataUrl)).blob();
-      const fileName = `temp-receipts/${uuidv4()}.png`;
-      const { data, error } = await supabase.storage.from('product-images').upload(fileName, blob);
+      const file = new File([blob], `receipt-${saleData.id.slice(0, 8)}.png`, { type: "image/png" });
+      
+      // 3. Upload to Cloudinary (Primary)
+      const publicUrl = await uploadCompressedToCloudinary(file);
 
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
-
-      // 3. Open WhatsApp
-      const text = encodeURIComponent(`Hello! Here is your bill from Joy Ram Steel for ₹${saleData.total}.\n\nView Bill: ${publicUrl}\n\nThank you!`);
-      window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${text}`, '_blank');
-      toast.success("WhatsApp opened with bill link!");
+      // 4. Open WhatsApp with Image URL
+      const text = `Hello! Here is your bill from Joy Ram Steel for ₹${saleData.total.toLocaleString()}.\n\nView Bill Image: ${publicUrl}\n\nThank you!`;
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+      toast.success("Handoff to WhatsApp successful", { id });
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to share via WhatsApp");
+      toast.error("Cloud Error: All upload paths failed", { id });
+    } finally {
+      setIsSharing(false);
     }
   };
 
   const downloadAsImage = async () => {
     if (!receiptRef.current) return;
     try {
-      const dataUrl = await toPng(receiptRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
+      const dataUrl = await toPng(receiptRef.current, { pixelRatio: 2, backgroundColor: '#ffffff' });
       const link = document.createElement('a');
       link.download = `JoyRamSteel-Bill-${saleData.id.slice(0, 8)}.png`;
       link.href = dataUrl;
@@ -99,7 +103,7 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
   const downloadAsPDF = async () => {
     if (!receiptRef.current) return;
     try {
-      const dataUrl = await toPng(receiptRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
+      const dataUrl = await toPng(receiptRef.current, { pixelRatio: 2, backgroundColor: '#ffffff' });
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -110,10 +114,6 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
     } catch (err) {
       toast.error("Failed to generate PDF");
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const subtotal = items.reduce((acc, item) => acc + (item.base_price * item.qty), 0);
@@ -142,13 +142,11 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center gap-6">
-          {/* THE RECEIPT */}
           <div 
             ref={receiptRef} 
             id="printable-receipt"
             className="w-full bg-white border border-zinc-200 rounded-2xl shadow-xl p-8 text-zinc-900 font-medium"
           >
-            {/* Header Branding */}
             <div className="text-center space-y-1 mb-8 border-b border-zinc-100 pb-6">
               <div className="mx-auto w-16 h-16 rounded-full overflow-hidden mb-3 border-2 border-zinc-50 shadow-md">
                 <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
@@ -162,13 +160,11 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
               </div>
             </div>
 
-            {/* Bill Info */}
             <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">
               <div>No: <span className="text-zinc-900">#{saleData.id.slice(0, 8)}</span></div>
               <div>Date: <span className="text-zinc-900">{new Date(saleData.date).toLocaleDateString()}</span></div>
             </div>
 
-            {/* Items Table */}
             <table className="w-full mb-8">
               <thead className="border-b-2 border-zinc-900">
                 <tr className="text-[10px] font-black uppercase tracking-widest text-zinc-400 text-left">
@@ -180,7 +176,7 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
               <tbody className="divide-y divide-zinc-50">
                 {items.map((item, idx) => (
                   <tr key={idx} className="text-sm">
-                    <td className="py-3">
+                    <td className="py-3 text-left">
                       <div className="font-black text-zinc-900 uppercase tracking-tight leading-none">{item.productName}</div>
                       <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">{item.size}</div>
                     </td>
@@ -191,7 +187,6 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
               </tbody>
             </table>
 
-            {/* Totals */}
             <div className="space-y-2 border-t-2 border-zinc-900 pt-6">
               <div className="flex justify-between text-xs font-black uppercase tracking-widest text-zinc-400">
                 <span>Subtotal</span>
@@ -207,37 +202,28 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
               </div>
             </div>
 
-            {/* Footer */}
             <div className="mt-10 pt-6 border-t border-dashed border-zinc-200 text-center">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Thank you for shopping with us!</p>
-              <div className="mt-4 flex justify-center">
-                <div className="bg-zinc-100 p-2 rounded-lg">
-                  {/* Mock QR Code for Digital Receipt */}
-                  <div className="h-12 w-12 border-2 border-zinc-200 flex items-center justify-center">
-                    <div className="h-8 w-8 bg-zinc-900" />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Actions Footer */}
-        <div className="p-6 bg-white border-t border-zinc-100 grid grid-cols-2 gap-3">
+        <div className="p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-2 gap-3">
           <Button 
             variant="outline" 
-            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] gap-2 border-zinc-200"
-            onClick={handlePrint}
+            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] gap-2 border-zinc-200 dark:border-zinc-800"
+            onClick={() => window.print()}
           >
             <Printer className="h-4 w-4" /> Print
           </Button>
 
           <Button 
             variant="outline" 
-            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] gap-2 border-emerald-100 text-emerald-600 hover:bg-emerald-50"
+            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] gap-2 border-emerald-100 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
             onClick={handleSendToWhatsApp}
+            disabled={isSharing}
           >
-            <MessageSquare className="h-4 w-4" /> WhatsApp
+            {isSharing ? <Loader2 className="animate-spin h-4 w-4" /> : <MessageSquare className="h-4 w-4" />} WhatsApp
           </Button>
 
           <Button 
@@ -249,10 +235,12 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button className="w-full rounded-2xl h-14 bg-zinc-900 hover:bg-black text-white font-black uppercase tracking-widest text-[10px] gap-2" />}>
-              <Download className="h-4 w-4" /> Download
+            <DropdownMenuTrigger>
+              <div className="w-full rounded-2xl h-14 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-widest text-[10px] gap-2 flex items-center justify-center cursor-pointer shadow-2xl">
+                <Download className="h-4 w-4 mr-2" /> Download
+              </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 bg-white/95 backdrop-blur-xl z-[6000]">
+            <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 bg-white dark:bg-zinc-900 z-[6000]">
               <DropdownMenuItem onClick={downloadAsImage} className="rounded-xl h-12 flex gap-3 font-bold cursor-pointer">
                 <ImageIcon className="h-4 w-4 text-blue-500" /> Save as Image
               </DropdownMenuItem>
@@ -263,10 +251,10 @@ export function ReceiptModal({ isOpen, onClose, saleData, items, onGenerateGst }
           </DropdownMenu>
         </div>
 
-        <div className="p-4 bg-zinc-50 text-center">
+        <div className="p-4 bg-zinc-50 dark:bg-zinc-800 text-center">
           <button 
             onClick={onClose}
-            className="text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:text-zinc-900 transition-colors"
+            className="text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             Close & New Sale
           </button>

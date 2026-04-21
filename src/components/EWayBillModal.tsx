@@ -19,7 +19,9 @@ import {
   Trash2,
   MapPin,
   Settings2,
-  Save
+  Save,
+  MessageSquare,
+  Loader2
 } from "lucide-react";
 import { 
   DropdownMenu,
@@ -37,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+import { uploadCompressedToCloudinary } from "@/lib/cloudinary";
 
 interface EWayBillModalProps {
   isOpen: boolean;
@@ -46,12 +49,13 @@ interface EWayBillModalProps {
 
 export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalProps) {
   const ewayRef = useRef<HTMLDivElement>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const [items, setItems] = useState<any[]>([
     { itemName: "STEEL KITCHEN WARE ITEMS", itemHsn: "7323", itemQty: "1.00", unit: "pcs", itemAmount: "10,000.00" }
   ]);
   const [details, setDetails] = useState({
     no: `EW-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-    date: new Date().toISOString(), // Use ISO Date
+    date: new Date().toISOString(),
     fromName: "JOY RAM STEEL",
     fromGstin: "16ENCPD2885R1ZE",
     fromAddress: "DHAJANAGAR, UDAIPUR, TRIPURA",
@@ -120,8 +124,36 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
         sync_status: 'pending',
         version_clock: Date.now()
       });
-      toast.success("eWay Bill Synced to Archives");
     } catch { toast.error("Failed to sync bill"); }
+  };
+
+  const handleWhatsAppShare = async () => {
+    const rawPhone = prompt("Enter Customer WhatsApp Number (e.g. 9876543210):");
+    if (!rawPhone) return;
+
+    let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    if (!ewayRef.current) return;
+    setIsSharing(true);
+    const id = toast.loading("Digitizing eWay Bill...");
+
+    try {
+      const dataUrl = await toPng(ewayRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' });
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `eway-${details.no}.png`, { type: "image/png" });
+      const publicUrl = await uploadCompressedToCloudinary(file);
+
+      const text = `Hello! Here is your eWay Bill from Joy Ram Steel (Ref: ${details.no}).\n\nView Bill: ${publicUrl}\n\nThank you!`;
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+      toast.success("eWay Bill shared on WhatsApp", { id });
+      await saveToHistory();
+    } catch (err) {
+      console.error(err);
+      toast.error("Sharing Failed", { id });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const exportDoc = async (type: 'pdf' | 'img') => {
@@ -143,7 +175,7 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent fullScreen className="bg-zinc-950">
-        <div className="md:hidden flex flex-col h-full w-full overflow-hidden">
+        <div className="md:hidden flex flex-col h-full w-full overflow-hidden text-left">
           <Tabs defaultValue="edit" className="flex-1 flex flex-col h-full overflow-hidden">
             <div className="bg-zinc-900 border-b border-white/10 p-3 shrink-0">
               <TabsList className="w-full bg-zinc-800/50 rounded-2xl h-14 p-1">
@@ -152,7 +184,7 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
               </TabsList>
             </div>
             <TabsContent value="edit" className="flex-1 overflow-y-auto bg-white m-0 p-6 pb-24">
-              <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} saveToHistory={saveToHistory} />
+              <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} saveToHistory={saveToHistory} handleWhatsAppShare={handleWhatsAppShare} isSharing={isSharing} />
             </TabsContent>
             <TabsContent value="preview" className="flex-1 overflow-auto bg-zinc-950 flex items-start justify-center p-4 m-0 scrollbar-hide">
               <div className="origin-top transform-gpu scale-[0.38] transition-all">
@@ -164,10 +196,10 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
 
         <div className="hidden md:flex flex-row h-full w-full overflow-hidden bg-zinc-950">
           <div className="w-[480px] h-full bg-white shrink-0 border-r border-zinc-100 overflow-y-auto p-10 scrollbar-hide">
-             <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} saveToHistory={saveToHistory} />
+             <EWayForm details={details} setDetails={setDetails} items={items} setItems={setItems} handleProductSelect={handleProductSelect} removeItem={removeItem} updateItem={updateItem} catalog={catalog} onClose={onClose} exportDoc={exportDoc} saveToHistory={saveToHistory} handleWhatsAppShare={handleWhatsAppShare} isSharing={isSharing} />
           </div>
           <div className="flex-1 h-full overflow-auto p-20 flex items-start justify-center scrollbar-hide">
-             <div className="origin-top transform-gpu scale-[0.7] lg:scale-[0.85] xl:scale-100 transition-all">
+             <div className="origin-top transform-gpu scale-[0.7] lg:scale-[0.85] xl:scale-100 transition-all text-left">
                 <EWayPreview ref={ewayRef} details={details} items={items} />
              </div>
           </div>
@@ -177,11 +209,11 @@ export function EWayBillModal({ isOpen, onClose, viewOnlyData }: EWayBillModalPr
   );
 }
 
-function EWayForm({ details, setDetails, items, setItems, handleProductSelect, removeItem, updateItem, catalog, onClose, exportDoc, saveToHistory }: any) {
+function EWayForm({ details, setDetails, items, setItems, handleProductSelect, removeItem, updateItem, catalog, onClose, exportDoc, saveToHistory, handleWhatsAppShare, isSharing }: any) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 text-left">
       <div className="flex justify-between items-center text-left">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black italic shadow-xl shadow-blue-600/20">E</div>
@@ -248,7 +280,9 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
         <div className="flex justify-between items-center px-1">
           <Label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Goods Selection</Label>
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1"><Layout className="h-3 w-3" /> Quick Catalog</Button>} />
+            <DropdownMenuTrigger>
+               <Button variant="link" className="h-auto p-0 text-[10px] font-black text-blue-600 uppercase flex items-center gap-1"><Layout className="h-3 w-3" /> Quick Catalog</Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent className="max-h-[400px] overflow-y-auto rounded-3xl p-3 min-w-[300px] shadow-2xl border-zinc-100 bg-white z-[6000]">
               {catalog?.map((p: any) => (
                 <DropdownMenuItem key={p.id} onClick={() => handleProductSelect(p)} className="rounded-2xl h-14 font-black text-xs flex justify-between cursor-pointer px-4">
@@ -260,7 +294,7 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
         </div>
         <ProductSearch onSelect={handleProductSelect} placeholder="Search product to bill..." />
         
-        <div className="space-y-4">
+        <div className="space-y-4 pb-20">
           {items.map((item: any, idx: number) => (
             <div key={idx} className="space-y-3 p-5 bg-zinc-50/50 rounded-[2rem] border border-zinc-100 shadow-inner relative group text-left">
               <button onClick={() => removeItem(idx)} className="absolute -top-2 -right-2 bg-white shadow-md border border-zinc-100 p-2 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-all z-10">
@@ -290,21 +324,28 @@ function EWayForm({ details, setDetails, items, setItems, handleProductSelect, r
               </div>
             </div>
           ))}
-          <Button onClick={() => setItems([...items, { itemName: "", itemHsn: "7323", itemQty: "1.00", unit: "pcs", itemAmount: "" }])} variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2 border-zinc-200 text-zinc-400 font-black uppercase text-[10px] tracking-widest hover:bg-zinc-50 transition-all">
-            <Plus className="h-4 w-4 mr-2" /> Add Manual Item
-          </Button>
         </div>
       </div>
 
-      <div className="mt-auto grid grid-cols-2 gap-4 pb-8">
-        <Button onClick={()=>window.print()} variant="outline" className="h-20 rounded-[1.5rem] border-2 border-zinc-100 font-black tracking-widest text-[10px] hover:bg-zinc-50 uppercase"><Printer className="h-6 w-6 mr-3 text-zinc-400" /> Print</Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button className="h-20 rounded-[1.5rem] bg-zinc-900 text-white font-black tracking-widest text-[10px] shadow-2xl uppercase"><Download className="h-6 w-6 mr-3 text-zinc-400" /> Save</Button>} />
-          <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
-             <DropdownMenuItem onClick={()=>exportDoc('img')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><ImageIcon className="h-6 w-6 text-blue-600" /> Image</DropdownMenuItem>
-             <DropdownMenuItem onClick={()=>exportDoc('pdf')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><FileText className="h-6 w-6 text-red-600" /> PDF</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-zinc-100 flex flex-col gap-3 md:relative md:bg-transparent md:border-none md:p-0">
+          <Button onClick={handleWhatsAppShare} disabled={isSharing || items.length === 0} className="w-full h-16 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black uppercase text-xs tracking-widest shadow-xl flex gap-3">
+             {isSharing ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageSquare className="h-5 w-5" />} Share eWay on WhatsApp
+          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={()=>window.print()} variant="outline" className="h-14 rounded-2xl border-2 border-zinc-100 font-black tracking-widest text-[9px] hover:bg-zinc-50 uppercase"><Printer className="h-4 w-4 mr-2 text-zinc-400" /> Print</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <div className="h-14 rounded-2xl bg-zinc-900 text-white font-black tracking-widest text-[9px] shadow-2xl uppercase flex items-center justify-center cursor-pointer px-6">
+                  <Download className="h-4 w-4 mr-2" /> Save
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="rounded-[1.5rem] p-3 shadow-2xl min-w-[220px] bg-white/95 backdrop-blur-3xl z-[6000]">
+
+                 <DropdownMenuItem onClick={()=>exportDoc('img')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><ImageIcon className="h-6 w-6 text-blue-600" /> Image</DropdownMenuItem>
+                 <DropdownMenuItem onClick={()=>exportDoc('pdf')} className="rounded-xl h-16 flex gap-4 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50"><FileText className="h-6 w-6 text-red-600" /> PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
       </div>
     </div>
   );

@@ -465,9 +465,13 @@ export default function Khata() {
   };
 
   const handleSendReminder = (phone: string, balance: number, name: string) => {
-    const text = encodeURIComponent(`Hello ${name}, this is a gentle reminder from Joy Ram Steel. Your pending Khata balance is ₹${balance}. Please settle it at your earliest convenience.`);
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
-    toast.success("Opened WhatsApp with reminder message");
+    // 1. Smart Phone Logic: Auto-prefix 91 if only 10 digits provided
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    const text = `Hello ${name}, this is a gentle reminder from Joy Ram Steel. Your pending Khata balance is ₹${balance.toLocaleString()}. Please settle it at your earliest convenience.`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    toast.success("Handoff to WhatsApp successful");
   };
 
   return (
