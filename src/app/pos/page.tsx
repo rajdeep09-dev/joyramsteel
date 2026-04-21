@@ -90,18 +90,27 @@ export default function POS() {
   const isBelowMsp = finalTotal < totalMsp;
 
   const addToCart = (variant: any) => {
+    // 1. Optimistic UI: Use Prepend to 'Pop' item into cart
     setCart(prev => {
       const existing = prev.find(item => item.id === variant.id);
       const unitsToAdd = variant.units_per_combo || 1;
       
       let newQty = existing ? (variant.unit === 'kg' ? 1 : existing.qty + unitsToAdd) : unitsToAdd;
       
+      // 2. Decimal Precision Guard for Weights
+      if (variant.unit === 'kg') {
+        newQty = Number(parseFloat(newQty.toString()).toFixed(3));
+      }
+
       if (newQty > variant.stock) { toast.error("Stock limit reached!"); return prev; }
       const lineTotal = calculateItemTotal(variant, newQty);
-      if (existing) return prev.map(item => item.id === variant.id ? { ...item, qty: newQty, line_total: lineTotal } : item);
-      return [...prev, { ...variant, qty: newQty, line_total: lineTotal }];
+      
+      if (existing) {
+        return prev.map(item => item.id === variant.id ? { ...item, qty: newQty, line_total: lineTotal } : item);
+      }
+      return [{ ...variant, qty: newQty, line_total: lineTotal }, ...prev];
     });
-    toast.success(`${variant.productName} added (${variant.units_per_combo || 1} units)`);
+    toast.success(`${variant.productName} added`, { duration: 800 });
   };
 
   const updateQty = (id: string, delta: number) => {
@@ -137,7 +146,20 @@ export default function POS() {
   const handleCheckout = async () => {
     if (cart.length === 0 || isProcessing) return;
     
-    setIsProcessing(true); // Duplicate Shield
+    // 3. Credit Ceiling Logic for Khata
+    if (paymentMode === 'khata') {
+      const customerName = prompt("Customer Name for Khata:");
+      if (!customerName) return;
+      const customer = await db.customers.where('name').equalsIgnoreCase(customerName).first();
+      if (customer) {
+        const potentialBalance = customer.balance + finalTotal;
+        if (customer.credit_limit && potentialBalance > customer.credit_limit) {
+          if (!confirm(`LIMIT EXCEEDED: ${customerName} has ₹${customer.balance}. This bill will reach ₹${potentialBalance} (Limit: ₹${customer.credit_limit}). Authorise Override?`)) return;
+        }
+      }
+    }
+
+    setIsProcessing(true);
     const checkoutToast = toast.loading("Authorising Transaction...");
 
     try {

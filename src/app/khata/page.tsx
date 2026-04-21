@@ -449,6 +449,7 @@ export default function Khata() {
         name: newName,
         phone: newPhone,
         balance,
+        credit_limit: 50000, // New default limit
         last_tx: "Just added",
         status: balance > 0 ? "Overdue" : "Clear",
         updated_at: now,

@@ -28,7 +28,8 @@ export interface Variant {
   pricing_type: 'standard' | 'bundle';
   bundle_qty?: number;
   bundle_price?: number;
-  units_per_combo?: number; // Total units reduced from stock per sale
+  units_per_combo?: number;
+  parent_pack_id?: string;
   created_at: string;
   updated_at: string;
   is_deleted: number;
@@ -73,6 +74,7 @@ export interface Customer {
   name: string;
   phone: string;
   balance: number;
+  credit_limit: number;
   last_tx: string;
   status: 'Overdue' | 'Recent' | 'Clear';
   updated_at: string;
@@ -142,13 +144,13 @@ const db = new Dexie('VyaparSyncDB') as Dexie & {
   parked_carts: EntityTable<ParkedCart, 'id'>;
 };
 
-// V13: Added units_per_combo for pack-to-unit mapping
-db.version(13).stores({
+// V14: Added credit_limit and parent_pack_id for business safety
+db.version(14).stores({
   products: 'id, name, category, updated_at, is_deleted, sync_status, version_clock', 
-  variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit, sync_status, version_clock', 
+  variants: 'id, product_id, size, barcode, updated_at, is_deleted, unit, sync_status, version_clock, parent_pack_id', 
   sales: 'id, date, sync_status, updated_at, is_deleted, version_clock, is_returned',
   sale_items: 'id, sale_id, variant_id, updated_at, is_deleted, sync_status, version_clock, is_returned',
-  customers: 'id, name, phone, status, updated_at, is_deleted, sync_status, version_clock',
+  customers: 'id, name, phone, status, updated_at, is_deleted, sync_status, version_clock, credit_limit',
   khata_transactions: 'id, customer_id, date, sync_status, updated_at, is_deleted, version_clock',
   bills: 'id, supplier, status, updated_at, is_deleted, sync_status, version_clock',
   digital_bills: 'id, type, bill_no, customer_name, date, sync_status, updated_at, is_deleted, version_clock',
