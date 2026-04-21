@@ -43,6 +43,24 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
     });
   }, []);
 
+  // Barcode Autodetect Engine (Moved here)
+  useEffect(() => {
+    if (!search || !catalog) return;
+
+    const exactMatch = catalog.find(item => item.barcode === search);
+    
+    if (exactMatch) {
+      onSelect(exactMatch);
+      handleSearchChange("");
+      setIsOpen(false);
+      toast.success(`Barcode Detected: ${exactMatch.productName}`);
+      
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }
+  }, [search, catalog]);
+
   const filtered = useMemo(() => {
     if (!search || !catalog) return [];
     const q = search.toLowerCase();
