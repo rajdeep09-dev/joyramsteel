@@ -4,7 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, Search, PackageOpen, Tag, Barcode, Camera, 
-  UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, Loader2, Info
+  UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, 
+  Loader2, Info, Edit2, LayoutGrid, List, CheckCircle2, X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,13 +39,21 @@ import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/ProductCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarcodeViewModal } from "@/components/BarcodeViewModal";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function Inventory() {
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Master Product Modal
+  const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
+  const [editingMaster, setEditingMaster] = useState<any>(null);
   const [newProductName, setNewProductName] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   
+  // Variant Modal
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [editingVariant, setEditingVariant] = useState<any>(null);
   const [newSize, setNewSize] = useState("");
   const [newStock, setNewStock] = useState("");
   const [newPrice, setNewPrice] = useState("");
@@ -63,34 +72,81 @@ export default function Inventory() {
   const products = useLiveQuery(() => db.products.where('is_deleted').equals(0).toArray()) || [];
   const variants = useLiveQuery(() => db.variants.where('is_deleted').equals(0).toArray()) || [];
 
-  const handleAddMasterProduct = async () => {
-    if (!newProductName || !newProductCategory) return toast.error("Fill all fields");
-    const now = new Date().toISOString();
-    await db.products.add({ 
-      id: uuidv4(), 
-      name: newProductName.toUpperCase(), 
-      category: newProductCategory.toUpperCase(), 
-      created_at: now, 
-      updated_at: now, 
-      is_deleted: 0, 
-      sync_status: 'pending', 
-      version_clock: Date.now() 
-    });
-    toast.success("Master Product added");
-    setNewProductName("");
+  const handleOpenMasterModal = (p?: any) => {
+    if (p) {
+      setEditingMaster(p);
+      setNewProductName(p.name);
+      setNewProductCategory(p.category);
+    } else {
+      setEditingMaster(null);
+      setNewProductName("");
+      setNewProductCategory("");
+    }
+    setIsMasterModalOpen(true);
   };
 
-  const handleAddVariant = async () => {
+  const handleSaveMasterProduct = async () => {
+    if (!newProductName || !newProductCategory) return toast.error("Fill all fields");
+    const now = new Date().toISOString();
+    
+    if (editingMaster) {
+      await db.products.update(editingMaster.id, {
+        name: newProductName.toUpperCase(),
+        category: newProductCategory.toUpperCase(),
+        updated_at: now,
+        version_clock: (editingMaster.version_clock || 0) + 1,
+        sync_status: 'pending'
+      });
+      toast.success("Master Product Updated");
+    } else {
+      await db.products.add({ 
+        id: uuidv4(), name: newProductName.toUpperCase(), category: newProductCategory.toUpperCase(), 
+        created_at: now, updated_at: now, is_deleted: 0, sync_status: 'pending', version_clock: Date.now() 
+      });
+      toast.success("Master Product Created");
+    }
+    setIsMasterModalOpen(false);
+  };
+
+  const handleOpenVariantModal = (v?: any) => {
+    if (v) {
+      setEditingVariant(v);
+      setSelectedProductId(v.product_id);
+      setNewSize(v.size);
+      setNewStock(v.stock.toString());
+      setNewPrice(v.base_price.toString());
+      setNewMsp(v.msp?.toString() || "");
+      setNewUnit(v.unit);
+      setNewPricingType(v.pricing_type);
+      setNewBundleQty(v.bundle_qty?.toString() || "");
+      setNewBundlePrice(v.bundle_price?.toString() || "");
+      setNewUnitsPerCombo(v.units_per_combo?.toString() || "1");
+    } else {
+      setEditingVariant(null);
+      setSelectedProductId(null);
+      setNewSize("");
+      setNewStock("");
+      setNewPrice("");
+      setNewMsp("");
+      setNewUnit("pcs");
+      setNewPricingType('standard');
+      setNewBundleQty("");
+      setNewBundlePrice("");
+      setNewUnitsPerCombo("1");
+    }
+    setCapturedFile(null);
+  };
+
+  const handleSaveVariant = async () => {
     if (!selectedProductId || !newSize || !newStock || !newPrice) return toast.error("Fill all fields");
     setIsUploading(true);
-    let url = undefined;
+    let url = editingVariant?.image_url;
     try {
       if (capturedFile) {
         url = await uploadCompressedToCloudinary(capturedFile);
       }
       const now = new Date().toISOString();
-      await db.variants.add({
-        id: uuidv4(),
+      const payload: any = {
         product_id: selectedProductId,
         size: newSize,
         unit: newUnit as any,
@@ -100,29 +156,37 @@ export default function Inventory() {
         msp: parseInt(newMsp || newPrice), 
         base_price: parseInt(newPrice), 
         image_url: url,
-        barcode: generateBarcode(), 
         pricing_type: newPricingType, 
         bundle_qty: newPricingType === 'bundle' ? parseInt(newBundleQty) : undefined,
         bundle_price: newPricingType === 'bundle' ? parseInt(newBundlePrice) : undefined,
         units_per_combo: parseInt(newUnitsPerCombo) || 1,
-        created_at: now,
         updated_at: now,
-        is_deleted: 0,
         sync_status: 'pending',
-        version_clock: Date.now()
-      });
-      toast.success("Variant deployed");
-      setNewSize(""); setNewStock(""); setNewPrice(""); setCapturedFile(null); setSelectedProductId(null);
-      setNewUnitsPerCombo("1");
-    } catch { toast.error("Deployment failed"); } finally { setIsUploading(false); }
+        version_clock: (editingVariant?.version_clock || 0) + 1
+      };
+
+      if (editingVariant) {
+        await db.variants.update(editingVariant.id, payload);
+        toast.success("Variant Updated");
+      } else {
+        await db.variants.add({
+          id: uuidv4(),
+          ...payload,
+          barcode: generateBarcode(),
+          created_at: now,
+          is_deleted: 0,
+          version_clock: Date.now()
+        });
+        toast.success("Variant Deployed");
+      }
+      setEditingVariant(null);
+      setSelectedProductId(null);
+    } catch { toast.error("Save failed"); } finally { setIsUploading(false); }
   };
 
   const handleDeleteMasterProduct = async (id: string, name: string) => {
     const hasVariants = variants.some(v => v.product_id === id && v.is_deleted === 0);
-    if (hasVariants) {
-      toast.error("Delete all sizes first!");
-      return;
-    }
+    if (hasVariants) return toast.error("Delete all sizes first!");
     if (!confirm(`Delete master entry "${name}"?`)) return;
     await db.products.update(id, { is_deleted: 1, updated_at: new Date().toISOString() });
     toast.success("Master Product removed");
@@ -157,6 +221,30 @@ export default function Inventory() {
         onClose={() => setSelectedBarcodeItem(null)} 
       />
       
+      {/* Master Product Dialog */}
+      <Dialog open={isMasterModalOpen} onOpenChange={setIsMasterModalOpen}>
+        <DialogContent className="rounded-[2rem] p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter dark:text-white">
+              {editingMaster ? "Modify Master Entry" : "New Master Entry"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-6">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Brand/Product Name</Label>
+              <Input value={newProductName} onChange={e=>setNewProductName(e.target.value)} placeholder="e.g. MILTON BUCKET" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Category</Label>
+              <Input value={newProductCategory} onChange={e=>setNewProductCategory(e.target.value)} placeholder="e.g. KITCHENWARE" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold" />
+            </div>
+            <Button onClick={handleSaveMasterProduct} className="w-full h-16 rounded-2xl bg-zinc-900 dark:bg-white dark:text-zinc-900 text-white font-black uppercase tracking-widest">
+              {editingMaster ? "Update Entry" : "Create Entry"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
           <h2 className="text-3xl font-black text-zinc-900 dark:text-white uppercase italic tracking-tighter">Inventory</h2>
@@ -164,32 +252,13 @@ export default function Inventory() {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setIsImportOpen(true)} className="flex-1 sm:flex-none h-11 rounded-xl font-bold uppercase text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
-          <Dialog>
-            <DialogTrigger>
-              <div className="h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold uppercase text-[10px] tracking-widest px-6 flex items-center justify-center cursor-pointer shadow-xl transition-transform active:scale-95">
-                 <Plus className="mr-2 h-4 w-4" /> Add Product
-              </div>
-            </DialogTrigger>
-            <DialogContent className="rounded-[2rem] p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
-              <DialogHeader><DialogTitle className="text-2xl font-black italic uppercase tracking-tighter dark:text-white">New Master Entry</DialogTitle></DialogHeader>
-              <div className="space-y-6 pt-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Brand/Product Name</Label>
-                  <Input value={newProductName} onChange={e=>setNewProductName(e.target.value)} placeholder="e.g. MILTON BUCKET" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Category</Label>
-                  <Input value={newProductCategory} onChange={e=>setNewProductCategory(e.target.value)} placeholder="e.g. KITCHENWARE" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold" />
-                </div>
-                <Button onClick={handleAddMasterProduct} className="w-full h-16 rounded-2xl bg-zinc-900 dark:bg-white dark:text-zinc-900 text-white font-black uppercase tracking-widest">Create Entry</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => handleOpenMasterModal()} className="flex-1 sm:flex-none h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold uppercase text-[10px] tracking-widest px-6 shadow-xl transition-transform active:scale-95">
+             <Plus className="mr-2 h-4 w-4" /> Add Product
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* Master Product Management */}
         <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 bg-white dark:bg-zinc-900 overflow-hidden relative border">
            <div className="absolute top-0 right-0 p-4 opacity-5"><PackageOpen className="h-20 w-20 dark:text-white" /></div>
            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Master Brands ({products.length})</h4>
@@ -198,9 +267,14 @@ export default function Inventory() {
                  {products.map(p => (
                    <div key={p.id} className="flex justify-between items-center group">
                       <span className="text-[10px] font-black uppercase italic dark:text-white">{p.name}</span>
-                      <button onClick={() => handleDeleteMasterProduct(p.id, p.name)} className="p-1.5 text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-                         <Trash2 className="h-3 w-3" />
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={() => handleOpenMasterModal(p)} className="p-1.5 text-zinc-400 hover:text-blue-500">
+                           <Edit2 className="h-3 w-3" />
+                        </button>
+                        <button onClick={() => handleDeleteMasterProduct(p.id, p.name)} className="p-1.5 text-zinc-300 hover:text-red-500">
+                           <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                    </div>
                  ))}
               </div>
@@ -213,7 +287,6 @@ export default function Inventory() {
           <div className="text-4xl font-black italic tracking-tighter relative z-10 tabular-nums">
             ₹ {variants.reduce((a, b) => a + (b.cost_price * b.stock), 0).toLocaleString()}
           </div>
-          <p className="text-[8px] font-bold text-emerald-400 mt-4 uppercase tracking-[0.2em] relative z-10">Active Stock Assets</p>
         </Card>
 
         <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-6 bg-white dark:bg-zinc-900 border">
@@ -237,48 +310,111 @@ export default function Inventory() {
         </Card>
       </div>
 
-      <div className="relative group">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-white transition-colors" />
-        <Input placeholder="Search catalog by name, size or barcode..." className="pl-14 h-16 rounded-2xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl font-bold tracking-tight text-lg dark:text-white" value={search} onChange={e=>setSearch(e.target.value)} />
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative group flex-1 w-full">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-white transition-colors" />
+          <Input placeholder="Search catalog..." className="pl-14 h-16 rounded-2xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl font-bold tracking-tight text-lg dark:text-white" value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl shadow-inner gap-1 self-stretch md:self-auto">
+           <button onClick={() => setViewMode('grid')} className={cn("px-4 rounded-xl flex items-center gap-2 font-black text-[9px] uppercase tracking-widest transition-all", viewMode === 'grid' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}>
+              <LayoutGrid className="h-4 w-4" /> Grid
+           </button>
+           <button onClick={() => setViewMode('list')} className={cn("px-4 rounded-xl flex items-center gap-2 font-black text-[9px] uppercase tracking-widest transition-all", viewMode === 'list' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}>
+              <List className="h-4 w-4" /> Flat List
+           </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-        {filteredVariants.map(v => (
-          <div key={v.id} className="relative group">
-            <ProductCard variant={v as any} onClick={() => setSelectedBarcodeItem(v)} />
-            <button onClick={async (e) => { e.stopPropagation(); if(confirm("Purge variant?")) await db.variants.update(v.id, { is_deleted: 1 }); }} className="absolute top-2 right-2 p-2 bg-white/90 dark:bg-zinc-800/90 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-xl border border-zinc-100 dark:border-zinc-700">
-               <Trash2 className="h-4 w-4" />
-            </button>
+      <div className="pb-10">
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            {filteredVariants.map(v => (
+              <div key={v.id} className="relative group">
+                <ProductCard variant={v as any} onClick={() => setSelectedBarcodeItem(v)} />
+                <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <button onClick={(e) => { e.stopPropagation(); handleOpenVariantModal(v); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-blue-600 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-blue-600 hover:text-white">
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button onClick={async (e) => { e.stopPropagation(); if(confirm("Purge variant?")) await db.variants.update(v.id, { is_deleted: 1 }); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-red-500 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-red-500 hover:text-white">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" className="h-full min-h-[200px] border-2 border-dashed rounded-[2.5rem] flex flex-col gap-3 dark:border-zinc-800 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all" onClick={() => handleOpenVariantModal()}>
+              <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-inner"><Plus className="h-8 w-8 text-zinc-400" /></div>
+              <span className="text-[10px] font-black uppercase tracking-widest">New Variant</span>
+            </Button>
           </div>
-        ))}
-        <Button variant="outline" className="h-full min-h-[200px] border-2 border-dashed rounded-[2.5rem] flex flex-col gap-3 dark:border-zinc-800 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all" onClick={() => setSelectedProductId(products[0]?.id || null)}>
-           <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-inner"><Plus className="h-8 w-8 text-zinc-400" /></div>
-           <span className="text-[10px] font-black uppercase tracking-widest">New Variant</span>
-        </Button>
+        ) : (
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 border">
+             <Table>
+                <TableHeader className="bg-zinc-50 dark:bg-zinc-950/50">
+                   <TableRow className="h-16 border-none">
+                      <TableHead className="pl-8 font-black uppercase text-[10px] tracking-widest">Brand/Variant</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest">Stock</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-right">Price</TableHead>
+                      <TableHead className="pr-8 text-right font-black uppercase text-[10px] tracking-widest">Actions</TableHead>
+                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                   {filteredVariants.map(v => (
+                     <TableRow key={v.id} className="h-20 border-zinc-50 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors group">
+                        <TableCell className="pl-8">
+                           <div className="font-black text-zinc-900 dark:text-white uppercase italic text-base leading-none mb-1">{v.productName}</div>
+                           <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{v.size} &bull; {v.barcode}</div>
+                        </TableCell>
+                        <TableCell>
+                           <Badge className={cn("rounded-lg font-black text-[10px]", v.stock < 5 ? "bg-red-500" : "bg-emerald-500")}>{v.stock} {v.unit.toUpperCase()}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-black text-xl tracking-tighter dark:text-white">₹{v.base_price}</TableCell>
+                        <TableCell className="pr-8 text-right">
+                           <div className="flex gap-2 justify-end">
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedBarcodeItem(v)} className="h-10 w-10 text-zinc-400"><Barcode className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenVariantModal(v)} className="h-10 w-10 text-blue-500 hover:bg-blue-50"><Edit2 className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={async () => { if(confirm("Delete?")) await db.variants.update(v.id, { is_deleted: 1 }); }} className="h-10 w-10 text-red-400 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button>
+                           </div>
+                        </TableCell>
+                     </TableRow>
+                   ))}
+                </TableBody>
+             </Table>
+          </Card>
+        )}
       </div>
 
-      <Dialog open={!!selectedProductId} onOpenChange={o => !o && setSelectedProductId(null)}>
+      <Dialog 
+        open={!!selectedProductId || !!editingVariant} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProductId(null);
+            setEditingVariant(null);
+          }
+        }}
+      >
         <DialogContent className="rounded-[2.5rem] p-10 max-w-md bg-white dark:bg-zinc-900 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
            <DialogHeader>
               <DialogTitle className="text-2xl font-black italic uppercase dark:text-white leading-tight">
-                DEPLOY VARIANT<br/>
+                {editingVariant ? "MODIFY VARIANT" : "DEPLOY VARIANT"}<br/>
                 <span className="text-blue-600">
                   {products.find(p => p.id === selectedProductId)?.name || "SELECT BRAND"}
                 </span>
               </DialogTitle>
            </DialogHeader>
            <div className="space-y-6 pt-6 text-left">
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Parent Entity (Brand)</Label>
-                 <Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}>
-                   <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white">
-                     <SelectValue placeholder="Brand Name" />
-                   </SelectTrigger>
-                   <SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">
-                     {products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}
-                   </SelectContent>
-                 </Select>
-              </div>
+              {!editingVariant && (
+                <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Parent Entity (Brand)</Label>
+                   <Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}>
+                     <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white">
+                       <SelectValue placeholder="Brand Name" />
+                     </SelectTrigger>
+                     <SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">
+                       {products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Strategy</Label>
@@ -307,7 +443,6 @@ export default function Inventory() {
                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Opening Stock</Label>
                    <Input type="number" value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
                 </div>
-                
                 <div className="space-y-2">
                    {newPricingType === 'standard' ? (
                      <>
@@ -318,26 +453,13 @@ export default function Inventory() {
                      <>
                        <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
                        <div className="flex flex-col gap-2">
-                          <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Pack Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
+                          <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
                           <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
                        </div>
                      </>
                    )}
                 </div>
               </div>
-
-              {newPricingType === 'bundle' && (
-                <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Combo Rules</Label>
-                   <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                         <Info className="h-4 w-4 text-blue-500" />
-                         <span className="text-[10px] font-bold dark:text-zinc-300 uppercase">Sell as a set of:</span>
-                      </div>
-                      <Input type="number" value={newBundleQty} onChange={e=>setNewBundleQty(e.target.value)} placeholder="Qty" className="w-20 h-10 rounded-xl bg-white dark:bg-zinc-900 font-black text-center" />
-                   </div>
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Variant Identity</Label>
@@ -351,14 +473,14 @@ export default function Inventory() {
                    ) : (
                       <>
                         <Camera className="h-8 w-8 text-zinc-300 group-hover:text-zinc-500 transition-colors" />
-                        <span className="text-[9px] font-black uppercase text-zinc-400 group-hover:text-zinc-500">Capture or Upload Media</span>
+                        <span className="text-[9px] font-black uppercase text-zinc-400 group-hover:text-zinc-500">Update Media</span>
                       </>
                    )}
                 </div>
               </div>
 
-              <Button onClick={handleAddVariant} disabled={isUploading} className="w-full h-20 rounded-[2.5rem] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">
-                {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'AUTHORISE DEPLOYMENT'}
+              <Button onClick={handleSaveVariant} disabled={isUploading} className="w-full h-20 rounded-[2.5rem] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">
+                {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (editingVariant ? 'UPDATE DEPLOYMENT' : 'AUTHORISE DEPLOYMENT')}
               </Button>
            </div>
         </DialogContent>
