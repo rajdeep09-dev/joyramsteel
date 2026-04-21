@@ -441,7 +441,9 @@ export default function Inventory() {
                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Parent Entity (Brand)</Label>
                    <Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}>
                      <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white">
-                       <SelectValue placeholder="Brand Name" />
+                       <SelectValue>
+                         {products.find(p => p.id === selectedProductId)?.name || "Select Brand"}
+                       </SelectValue>
                      </SelectTrigger>
                      <SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">
                        {products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}
