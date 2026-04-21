@@ -307,11 +307,37 @@ export default function Inventory() {
                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Opening Stock</Label>
                    <Input type="number" value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
                 </div>
+                
                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label>
-                   <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
+                   {newPricingType === 'standard' ? (
+                     <>
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label>
+                       <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
+                     </>
+                   ) : (
+                     <>
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
+                       <div className="flex flex-col gap-2">
+                          <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Pack Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
+                          <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
+                       </div>
+                     </>
+                   )}
                 </div>
               </div>
+
+              {newPricingType === 'bundle' && (
+                <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Combo Rules</Label>
+                   <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <Info className="h-4 w-4 text-blue-500" />
+                         <span className="text-[10px] font-bold dark:text-zinc-300 uppercase">Sell as a set of:</span>
+                      </div>
+                      <Input type="number" value={newBundleQty} onChange={e=>setNewBundleQty(e.target.value)} placeholder="Qty" className="w-20 h-10 rounded-xl bg-white dark:bg-zinc-900 font-black text-center" />
+                   </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Variant Identity</Label>

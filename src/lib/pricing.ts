@@ -13,11 +13,12 @@ export function calculateItemTotal(variant: Partial<Variant>, inputQty: number):
     return Number((inputQty * basePrice).toFixed(2));
   }
 
-  // Rule 2: If pricing_type is 'bundle' (e.g., 4 pcs for 100)
+  // Rule 2: If pricing_type is 'bundle' (e.g., 4 units for total 100)
   if (variant.pricing_type === 'bundle' && variant.bundle_qty && variant.bundle_price) {
     const fullBundles = Math.floor(inputQty / variant.bundle_qty);
     const remainder = inputQty % variant.bundle_qty;
     
+    // bundle_price is the TOTAL for the bundle_qty
     const bundleTotal = fullBundles * variant.bundle_price;
     const remainderTotal = remainder * basePrice;
     
