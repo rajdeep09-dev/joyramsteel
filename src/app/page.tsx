@@ -1,10 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   IndianRupee, TrendingUp, Package, AlertTriangle,
-  QrCode, ShoppingCart, Banknote, MessageCircle, Truck, History as HistoryIcon,
-  Zap, ArrowRight
+  QrCode, ShoppingCart, Banknote, MessageCircle, Truck, 
+  History as HistoryIcon, Zap, LayoutDashboard,
+  ShieldCheck, ArrowRight, User, MousePointer2,
+  Clock, CheckCircle2, ChevronRight, Activity, 
+  PackageSearch,
+  ShoppingCartIcon
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +20,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const container = {
   hidden: { opacity: 0 },
@@ -40,15 +45,14 @@ export default function Dashboard() {
   const variants = useLiveQuery(() => db.variants.where('is_deleted').equals(0).toArray(), []);
   const products = useLiveQuery(() => db.products.where('is_deleted').equals(0).toArray(), []);
   const customers = useLiveQuery(() => db.customers.where('is_deleted').equals(0).toArray(), []);
+  const parkedCarts = useLiveQuery(() => db.parked_carts.toArray()) || [];
 
   const isDataLoading = !isTimedOut && (sales === undefined || saleItems === undefined || variants === undefined || products === undefined || customers === undefined);
 
   if (isDataLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6">
-        <div className="text-zinc-400 font-black uppercase tracking-[0.3em] animate-pulse text-xs">
-          Initialising Systems...
-        </div>
+        <div className="text-zinc-400 font-black uppercase tracking-[0.3em] animate-pulse text-xs">Initialising...</div>
       </div>
     );
   }
@@ -57,194 +61,131 @@ export default function Dashboard() {
   const allSaleItems = saleItems || [];
   const allVariants = variants || [];
   const allProducts = products || [];
-  const allCustomers = customers || [];
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todaysSales = allSales.filter(s => s.date.startsWith(todayStr));
-  
   const todayRevenue = todaysSales.reduce((acc, sale) => acc + sale.total_amount, 0);
-  const itemsSoldToday = allSaleItems.filter(si => todaysSales.find(s => s.id === si.sale_id))
-                                  .reduce((acc, curr) => acc + curr.quantity, 0);
-  
-  const pendingKhata = allCustomers.reduce((acc, curr) => acc + curr.balance, 0);
-  const khataFollowups = allCustomers.filter(c => c.status === "Overdue" && c.balance > 0);
 
-  const todayCash = todaysSales.filter(s => s.payment_method === 'cash').reduce((acc, s) => acc + s.total_amount, 0);
-  const todayUpi = todaysSales.filter(s => s.payment_method === 'upi').reduce((acc, s) => acc + s.total_amount, 0);
-  
-  const totalReceived = todayCash + todayUpi;
-  const cashPercentage = totalReceived > 0 ? Math.round((todayCash / totalReceived) * 100) : 0;
-  const upiPercentage = totalReceived > 0 ? 100 - cashPercentage : 0;
-
-  const stats = [
-    { title: "Revenue Today", value: `₹ ${todayRevenue.toLocaleString()}`, icon: IndianRupee, color: "text-zinc-900" },
-    { title: "Items Sold", value: `${itemsSoldToday} Units`, icon: Package, color: "text-zinc-900" },
-    { title: "Pending Khata", value: `₹ ${pendingKhata.toLocaleString()}`, icon: AlertTriangle, color: "text-red-600" },
-  ];
+  const lowStock = allVariants.filter(v => v.stock < 10).map(v => {
+    const p = allProducts.find(p => p.id === v.product_id);
+    return { ...v, productName: p?.name || "Unknown" };
+  }).sort((a, b) => a.stock - b.stock);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-20">
+    <div className="space-y-8 max-w-7xl mx-auto pb-20 text-left">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-white shadow-xl shrink-0">
-            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover" />
+          <div className="h-16 w-16 rounded-2xl overflow-hidden border-2 border-white dark:border-zinc-800 shadow-xl shrink-0 p-1 bg-white dark:bg-zinc-900">
+            <img src="/joyramlogo.png" alt="Logo" className="w-full h-full object-cover rounded-xl" />
           </div>
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-zinc-900 uppercase italic">Good Evening! 👋</h2>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs opacity-60">End of Day summary</p>
+            <h2 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white uppercase italic">System Console</h2>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] opacity-60">JRS TERMINAL 09-DEV</p>
           </div>
         </div>
-        <div className="flex gap-4">
-          <Link href="/pos"><Button size="lg" className="bg-zinc-900 h-12 rounded-xl font-bold uppercase text-xs tracking-widest px-8">Open POS</Button></Link>
-          <Link href="/history"><Button size="lg" variant="outline" className="h-12 rounded-xl font-bold uppercase text-xs tracking-widest px-8 border-zinc-200">Archives</Button></Link>
+        <div className="flex gap-3">
+          <Link href="/pos"><Button className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest px-8 shadow-xl">POS terminal</Button></Link>
+          <Link href="/history"><Button variant="outline" className="h-12 rounded-xl font-black uppercase text-[10px] tracking-widest px-8 border-zinc-200 dark:border-zinc-800">Archives</Button></Link>
         </div>
       </div>
 
-      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 md:grid-cols-3">
-        {stats.map((stat, i) => (
+      <motion.div variants={container} initial="hidden" animate="show" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "Today's Revenue", val: `₹${todayRevenue.toLocaleString()}`, icon: IndianRupee, color: "text-blue-600" },
+          { label: "Low Stock Items", val: lowStock.length, icon: PackageSearch, color: "text-red-600" },
+          { label: "Parked Carts", val: parkedCarts.length, icon: MousePointer2, color: "text-amber-600" },
+          { label: "Total Products", val: allVariants.length, icon: Package, color: "text-zinc-900 dark:text-white" }
+        ].map((s, i) => (
           <motion.div key={i} variants={item}>
-            <Card className="border-zinc-200 shadow-xl rounded-2xl overflow-hidden group hover:border-zinc-900 transition-colors">
-              <CardContent className="p-6 flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{stat.title}</p>
-                  <h3 className="text-3xl font-black text-zinc-900 tracking-tighter italic">{stat.value}</h3>
+            <Card className="border-zinc-100 dark:border-zinc-800 shadow-lg rounded-3xl overflow-hidden bg-white dark:bg-zinc-900/50 backdrop-blur-xl">
+              <CardContent className="p-6 flex justify-between items-center">
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{s.label}</p>
+                  <h3 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter italic">{s.val}</h3>
                 </div>
-                <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-100 group-hover:bg-zinc-900 group-hover:text-white transition-all"><stat.icon className={`h-5 w-5 ${stat.color} group-hover:text-white`} /></div>
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-inner">
+                  <s.icon className={cn("h-6 w-6", s.color)} />
+                </div>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* NEW: KITCHEN PULSE (Category Performance) */}
-      <div className="grid gap-8 md:grid-cols-3">
-         <Card className="border-zinc-200 shadow-xl rounded-2xl md:col-span-1 overflow-hidden bg-white">
-            <CardHeader className="p-6 pb-2 border-b border-zinc-50 bg-zinc-50/50">
-               <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2 italic">
-                  <TrendingUp className="h-4 w-4 text-blue-600" /> Category Pulse
-               </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-               {[
-                 { label: "Steel Cookware", val: 75, color: "bg-zinc-900" },
-                 { label: "Kitchen Combos", val: 45, color: "bg-blue-600" },
-                 { label: "Storage & Tiffins", val: 90, color: "bg-emerald-600" }
-               ].map(cat => (
-                 <div key={cat.label} className="space-y-2">
-                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                       <span>{cat.label}</span>
-                       <span className="text-zinc-400">{cat.val}% of target</span>
-                    </div>
-                    <Progress value={cat.val} className={cn("h-1.5", cat.color)} />
-                 </div>
-               ))}
-            </CardContent>
-         </Card>
-
-         <Card className="border-none shadow-xl rounded-2xl md:col-span-2 overflow-hidden bg-zinc-900 text-white relative">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[80px] -mr-32 -mt-32" />
-            <div className="p-8 flex flex-col h-full justify-between relative z-10">
-               <div className="space-y-1">
-                  <p className="text-zinc-500 font-black text-[9px] uppercase tracking-[0.4em]">EOD GROWTH INTELLIGENCE</p>
-                  <h3 className="text-4xl font-black italic tracking-tighter uppercase">Kitchen Pro Suite</h3>
-               </div>
-               <div className="flex gap-10 mt-8">
-                  <div className="space-y-1">
-                     <p className="text-zinc-500 font-bold text-[8px] uppercase tracking-widest">Profit (Est.)</p>
-                     <p className="text-2xl font-black text-emerald-400 italic">₹ {(todayRevenue * 0.15).toLocaleString()}</p>
-                  </div>
-                  <div className="space-y-1">
-                     <p className="text-zinc-500 font-bold text-[8px] uppercase tracking-widest">Avg Bill Value</p>
-                     <p className="text-2xl font-black text-white italic">₹ {(todaysSales.length > 0 ? (todayRevenue / todaysSales.length) : 0).toLocaleString()}</p>
-                  </div>
-                  <div className="space-y-1">
-                     <p className="text-zinc-500 font-bold text-[8px] uppercase tracking-widest">New Customers</p>
-                     <p className="text-2xl font-black text-blue-400 italic">+{allCustomers.filter(c => c.updated_at.startsWith(todayStr)).length}</p>
-                  </div>
-               </div>
-            </div>
-         </Card>
-      </div>
-
       <div className="grid gap-8 md:grid-cols-12">
-        <div className="md:col-span-8 space-y-8">
-          {/* NEW: Operational Quick-Start */}
-          <Card className="border-none shadow-2xl bg-zinc-900 text-white rounded-[2.5rem] overflow-hidden relative group">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] -mr-32 -mt-32" />
-             <CardHeader className="p-8 pb-4 relative z-10">
-                <CardTitle className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
-                   <Zap className="h-6 w-6 text-amber-400 fill-amber-400" /> Administrative Quick-Start
+        {/* Module: Low Stock Items */}
+        <div className="md:col-span-4 space-y-6">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-[2.5rem] bg-white dark:bg-zinc-900/50 backdrop-blur-xl h-full flex flex-col overflow-hidden">
+             <CardHeader className="p-8 pb-4 border-b border-zinc-50 dark:border-zinc-800">
+                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-3 italic">
+                   <Zap className="h-4 w-4 text-red-500 fill-red-500 animate-pulse" /> Low Stock Radar
                 </CardTitle>
-                <CardDescription className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Follow these steps to manage your business daily</CardDescription>
              </CardHeader>
-             <CardContent className="p-8 pt-0 relative z-10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                   {[
-                     { step: "01", title: "Create Bill", desc: "Open POS and scan items to start a sale.", link: "/pos" },
-                     { step: "02", title: "Manage Stock", desc: "Add new stock or brands in Master Catalog.", link: "/inventory" },
-                     { step: "03", title: "Track Udhar", desc: "Check customer balances in Digital Khata.", link: "/khata" },
-                     { step: "04", title: "Audit Bills", desc: "View every invoice and supplier bill in Vault.", link: "/vault" }
-                   ].map((item, i) => (
-                     <Link key={i} href={item.link}>
-                        <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
-                           <div className="flex justify-between items-start mb-2">
-                              <span className="text-[10px] font-black text-blue-500">{item.step}</span>
-                              <ArrowRight className="h-3 w-3 text-zinc-600 group-hover:translate-x-1 transition-transform" />
+             <CardContent className="p-0 flex-1">
+                <ScrollArea className="h-[400px]">
+                   <div className="p-4 space-y-3">
+                      {lowStock.length === 0 ? (
+                        <div className="py-20 text-center opacity-30 text-[10px] font-black uppercase">All Stock Healthy</div>
+                      ) : lowStock.map(v => (
+                        <div key={v.id} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex justify-between items-center group hover:border-red-200 dark:hover:border-red-900/50 transition-all">
+                           <div className="text-left overflow-hidden mr-2">
+                              <p className="font-black text-xs uppercase italic truncate dark:text-white">{v.productName}</p>
+                              <p className="text-[9px] font-bold text-zinc-400 uppercase mt-1">{v.size}</p>
                            </div>
-                           <h4 className="font-black text-sm uppercase italic tracking-tight mb-1">{item.title}</h4>
-                           <p className="text-[10px] font-bold text-zinc-500 leading-tight">{item.desc}</p>
+                           <Badge className={cn("rounded-lg font-black text-[10px]", v.stock < 5 ? "bg-red-500" : "bg-amber-500")}>{v.stock} LEFT</Badge>
                         </div>
-                     </Link>
-                   ))}
-                </div>
+                      ))}
+                   </div>
+                </ScrollArea>
              </CardContent>
-          </Card>
-          <Card className="border-zinc-200 shadow-xl rounded-2xl overflow-hidden">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-xl font-black uppercase italic tracking-tight">EOD Reconciliation</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-[10px] font-black uppercase mb-2">
-                    <span className="text-zinc-400">UPI (Digital)</span>
-                    <span>₹ {todayUpi.toLocaleString()}</span>
-                  </div>
-                  <Progress value={upiPercentage} className="h-2" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-[10px] font-black uppercase mb-2">
-                    <span className="text-zinc-400">Cash (Drawer)</span>
-                    <span>₹ {todayCash.toLocaleString()}</span>
-                  </div>
-                  <Progress value={cashPercentage} className="h-2" />
-                </div>
-              </div>
-            </CardContent>
+             <Link href="/inventory" className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-100 dark:border-zinc-800">
+                <Button variant="ghost" className="w-full text-[9px] font-black uppercase tracking-widest gap-2">Inventory Management <ArrowRight className="h-3 w-3" /></Button>
+             </Link>
           </Card>
         </div>
 
-        <div className="md:col-span-4">
-          <Card className="border-zinc-200 shadow-xl rounded-2xl bg-zinc-900 text-white h-full">
-            <CardHeader className="p-6 pb-2">
-              <CardTitle className="text-xl font-black uppercase italic tracking-tight">Khata Follow-ups</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 flex flex-col gap-4">
-              {khataFollowups.length === 0 ? (
-                <div className="py-20 text-center opacity-40 text-xs font-bold uppercase tracking-widest">No overdue payments</div>
-              ) : khataFollowups.slice(0, 3).map(customer => (
-                <div key={customer.id} className="p-4 rounded-xl bg-white/5 border border-white/5 flex justify-between items-center">
-                  <div className="text-left">
-                    <p className="font-bold text-sm uppercase">{customer.name}</p>
-                    <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">₹{customer.balance.toLocaleString()}</p>
-                  </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-white" onClick={() => {
-                    const text = encodeURIComponent(`Reminder: ₹${customer.balance} pending at Joy Ram Steel.`);
-                    window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}?text=${text}`, '_blank');
-                  }}><MessageCircle className="h-4 w-4" /></Button>
-                </div>
-              ))}
-            </CardContent>
+        {/* Module: Recent Sold Items */}
+        <div className="md:col-span-8 space-y-6">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-[2.5rem] bg-white dark:bg-zinc-900/50 backdrop-blur-xl h-full flex flex-col overflow-hidden">
+             <CardHeader className="p-8 pb-4 border-b border-zinc-50 dark:border-zinc-800">
+                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-3 italic text-zinc-900 dark:text-white">
+                   <ShoppingCartIcon className="h-4 w-4 text-blue-600" /> Recent Sales Movement
+                </CardTitle>
+             </CardHeader>
+             <CardContent className="p-0 flex-1">
+                <Table>
+                   <TableHeader className="bg-zinc-50 dark:bg-zinc-800/50">
+                      <TableRow className="border-none h-12">
+                         <TableHead className="pl-8 font-black uppercase text-[9px] tracking-widest text-zinc-400">Entry</TableHead>
+                         <TableHead className="font-black uppercase text-[9px] tracking-widest text-zinc-400">Qty Delta</TableHead>
+                         <TableHead className="font-black uppercase text-[9px] tracking-widest text-zinc-400 text-right pr-8">Time-Log</TableHead>
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {allSaleItems.slice().reverse().slice(0, 7).map(si => {
+                        const v = allVariants.find(v => v.id === si.variant_id);
+                        const p = allProducts.find(p => p.id === v?.product_id);
+                        const s = allSales.find(s => s.id === si.sale_id);
+                        return (
+                          <TableRow key={si.id} className="border-zinc-50 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors h-16">
+                             <TableCell className="pl-8">
+                                <div className="font-black text-zinc-900 dark:text-white uppercase italic text-[11px]">{p?.name || "Unknown"}</div>
+                                <div className="text-[9px] font-bold text-zinc-400 uppercase mt-0.5">{v?.size}</div>
+                             </TableCell>
+                             <TableCell>
+                                <Badge className="bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black text-[9px] px-2 py-0.5">-{si.quantity} {v?.unit?.toUpperCase() || 'PCS'}</Badge>
+                             </TableCell>
+                             <TableCell className="text-right pr-8">
+                                <div className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter flex items-center justify-end gap-2">
+                                   <Clock className="h-3 w-3" /> {s ? new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}
+                                </div>
+                             </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                   </TableBody>
+                </Table>
+             </CardContent>
           </Card>
         </div>
       </div>
