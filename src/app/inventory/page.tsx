@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -140,6 +141,49 @@ export default function Inventory() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <Card className="border-zinc-200 shadow-xl rounded-2xl overflow-hidden bg-zinc-900 text-white p-6 relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+          <h4 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2 relative z-10">Total Inventory Value</h4>
+          <div className="text-4xl font-black italic tracking-tighter relative z-10">
+            ₹ {variants.reduce((a, b) => a + (b.cost_price * b.stock), 0).toLocaleString()}
+          </div>
+          <p className="text-[8px] font-bold text-emerald-400 mt-4 uppercase tracking-[0.2em]">Current Asset Worth (Cost)</p>
+        </Card>
+
+        <Card className="border-zinc-200 shadow-xl rounded-2xl p-6 flex flex-col justify-between">
+           <div>
+             <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Expected Retail Value</h4>
+             <div className="text-3xl font-black italic tracking-tighter text-zinc-900">
+               ₹ {variants.reduce((a, b) => a + (b.base_price * b.stock), 0).toLocaleString()}
+             </div>
+           </div>
+           <div className="mt-4 pt-4 border-t border-zinc-50">
+              <span className="text-[8px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-md uppercase tracking-widest">Potential Margin: ~₹ {(variants.reduce((a, b) => a + (b.base_price * b.stock), 0) - variants.reduce((a, b) => a + (b.cost_price * b.stock), 0)).toLocaleString()}</span>
+           </div>
+        </Card>
+
+        <Card className="border-zinc-200 shadow-xl rounded-2xl p-6">
+           <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Stock Health Distribution</h4>
+           <div className="space-y-4">
+              <div className="space-y-1">
+                 <div className="flex justify-between text-[8px] font-black uppercase">
+                    <span>Critical (&lt;5 units)</span>
+                    <span className="text-red-600">{variants.filter(v=>v.stock < 5).length} SKU</span>
+                 </div>
+                 <Progress value={(variants.filter(v=>v.stock < 5).length / variants.length) * 100} className="h-1 bg-red-100" />
+              </div>
+              <div className="space-y-1">
+                 <div className="flex justify-between text-[8px] font-black uppercase">
+                    <span>Healthy Stock</span>
+                    <span className="text-emerald-600">{variants.filter(v=>v.stock >= 5).length} SKU</span>
+                 </div>
+                 <Progress value={(variants.filter(v=>v.stock >= 5).length / variants.length) * 100} className="h-1 bg-emerald-100" />
+              </div>
+           </div>
+        </Card>
       </div>
 
       <div className="relative">

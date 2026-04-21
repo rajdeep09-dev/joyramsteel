@@ -58,9 +58,25 @@ export function ProductCard({ variant, onClick, className }: ProductCardProps) {
         </div>
 
         {/* Glassmorphic Size Badge */}
-        <div className="absolute top-4 left-4 bg-white/40 backdrop-blur-xl border border-white/20 px-3 py-1 rounded-xl shadow-xl">
-           <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">{variant.size}</span>
+        <div className="absolute top-4 left-4 flex flex-col gap-2">
+          <div className="bg-white/60 backdrop-blur-xl border border-white/20 px-3 py-1 rounded-xl shadow-xl">
+             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">{variant.size}</span>
+          </div>
+          {variant.unit === 'kg' && (
+            <div className="bg-blue-600 text-white px-2 py-0.5 rounded-lg shadow-lg">
+               <span className="text-[8px] font-black uppercase tracking-widest">By Weight</span>
+            </div>
+          )}
         </div>
+
+        {/* Combo Ribbon */}
+        {variant.pricing_type === 'bundle' && (
+          <div className="absolute top-0 right-0 overflow-hidden w-20 h-20 pointer-events-none">
+            <div className="absolute top-4 -right-8 rotate-45 bg-zinc-900 text-white text-[8px] font-black uppercase tracking-widest py-1 w-32 text-center shadow-2xl border-y border-white/10">
+              COMBO
+            </div>
+          </div>
+        )}
 
         {/* Price Badge */}
         <div className="absolute top-5 right-5 bg-zinc-900/90 backdrop-blur-xl font-black px-4 py-2 rounded-2xl text-base shadow-2xl tracking-tighter border border-white/10 text-white">
