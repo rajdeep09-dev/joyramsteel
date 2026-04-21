@@ -115,6 +115,11 @@ export default function POS() {
     }));
   };
 
+  const removeItem = (id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+    toast.info("Item removed from cart");
+  };
+
   const handleParkCart = async () => {
     if (cart.length === 0) return;
     const name = prompt("Reference Name:") || "Guest";
@@ -239,18 +244,28 @@ export default function POS() {
           <ScrollArea className="flex-1 p-6">
             <div className="space-y-4">
               {cart.map(item => (
-                <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-zinc-100 bg-zinc-50/50">
-                  <div className="flex-1 min-w-0">
+                <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 group relative">
+                  <div className="flex-1 min-w-0 text-left">
                     <h4 className="font-bold text-sm truncate uppercase">{item.productName}</h4>
                     <p className="text-[10px] text-zinc-500 font-bold uppercase">{item.size} &bull; ₹{item.base_price}</p>
                   </div>
-                  <div className="text-right">
-                    <div className="font-black text-sm">₹{item.line_total}</div>
-                    <div className="flex items-center gap-2 mt-2 bg-white rounded-lg border border-zinc-200 p-1">
-                      <button onClick={() => updateQty(item.id, -1)} className="h-6 w-6 flex items-center justify-center hover:bg-zinc-100 rounded"><Minus className="h-3 w-3" /></button>
-                      <span className="text-xs font-black min-w-[20px] text-center">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, 1)} className="h-6 w-6 flex items-center justify-center hover:bg-zinc-100 rounded"><Plus className="h-3 w-3" /></button>
+                  <div className="text-right flex items-center gap-3">
+                    <div>
+                      <div className="font-black text-sm text-right">₹{item.line_total}</div>
+                      <div className="flex items-center gap-2 mt-2 bg-white rounded-lg border border-zinc-200 p-1">
+                        <button onClick={() => updateQty(item.id, -1)} className="h-6 w-6 flex items-center justify-center hover:bg-zinc-100 rounded"><Minus className="h-3 w-3" /></button>
+                        <span className="text-xs font-black min-w-[20px] text-center tabular-nums">{item.qty}</span>
+                        <button onClick={() => updateQty(item.id, 1)} className="h-6 w-6 flex items-center justify-center hover:bg-zinc-100 rounded"><Plus className="h-3 w-3" /></button>
+                      </div>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => removeItem(item.id)}
+                      className="h-8 w-8 text-zinc-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}

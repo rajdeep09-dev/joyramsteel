@@ -101,7 +101,7 @@ export default function Dashboard() {
         {[
           { label: "Today's Revenue", val: `₹${todayRevenue.toLocaleString()}`, icon: IndianRupee, color: "text-blue-600" },
           { label: "Low Stock Items", val: lowStock.length, icon: PackageSearch, color: "text-red-600" },
-          { label: "Parked Carts", val: parkedCarts.length, icon: MousePointer2, color: "text-amber-600" },
+          { label: "Total Units Sold", val: recentMovements.reduce((acc, si) => acc + si.quantity, 0), icon: ShoppingCartIcon, color: "text-emerald-600" },
           { label: "Total Products", val: allVariants.length, icon: Package, color: "text-zinc-900 dark:text-white" }
         ].map((s, i) => (
           <motion.div key={i} variants={item}>

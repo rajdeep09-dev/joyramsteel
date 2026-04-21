@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Package, Command, X, ArrowRight, Zap, History, TrendingUp, Barcode, Camera, Loader2 } from "lucide-react";
+import { Search, Package, Command, X, ArrowRight, Zap, History, TrendingUp, Barcode, Camera, Loader2, UploadCloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { fuzzyMatch } from "@/lib/fuzzy";
-import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 
 interface ProductSearchProps {
@@ -25,6 +25,7 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -43,21 +44,16 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
     });
   }, []);
 
-  // Barcode Autodetect Engine (Moved here)
+  // Barcode Autodetect Engine
   useEffect(() => {
     if (!search || !catalog) return;
-
     const exactMatch = catalog.find(item => item.barcode === search);
-    
     if (exactMatch) {
       onSelect(exactMatch);
       handleSearchChange("");
       setIsOpen(false);
       toast.success(`Barcode Detected: ${exactMatch.productName}`);
-      
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(50);
-      }
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
     }
   }, [search, catalog]);
 
@@ -93,7 +89,6 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
           handleSearchChange(decodedText);
           stopScanner();
           setIsOpen(true);
-          toast.success("Barcode Detected");
         },
         () => {}
       ).catch(err => {
@@ -115,8 +110,26 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
     }
   };
 
+  const handleImageScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsProcessingImage(true);
+    const id = toast.loading("Analysing Barcode Image...");
+    try {
+      const html5QrCode = new Html5Qrcode("reader-hidden");
+      const result = await html5QrCode.scanFile(file, true);
+      handleSearchChange(result);
+      toast.success("Barcode Recognized!", { id });
+    } catch (err) {
+      toast.error("No barcode found in image", { id });
+    } finally {
+      setIsProcessingImage(false);
+    }
+  };
+
   return (
     <div className={cn("relative w-full", className)}>
+      <div id="reader-hidden" className="hidden" />
       <div className="relative group">
         <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-4 z-10">
           <Search className={cn("h-6 w-6 transition-colors", isOpen ? "text-blue-600" : "text-zinc-400")} />
@@ -126,7 +139,7 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
           ref={inputRef}
           placeholder={placeholder}
           className={cn(
-            "pl-16 pr-32 h-20 rounded-[2rem] bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 transition-all duration-500",
+            "pl-16 pr-44 h-20 rounded-[2rem] bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 transition-all duration-500",
             "text-xl font-black italic tracking-tight placeholder:text-zinc-300 dark:text-white",
             "focus-visible:ring-0 focus:border-blue-600 focus:shadow-[0_20px_80px_rgba(37,99,235,0.15)]",
             isOpen && "rounded-b-none border-b-zinc-50 dark:border-b-zinc-800 shadow-none"
@@ -136,7 +149,11 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
           onFocus={() => setIsOpen(true)}
         />
 
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-4">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <label className="p-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-2xl cursor-pointer hover:bg-zinc-200 transition-all">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageScan} disabled={isProcessingImage} />
+            <UploadCloud className="h-6 w-6" />
+          </label>
           <button onClick={startScanner} className="p-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl shadow-xl active:scale-90 transition-all">
             <Camera className="h-6 w-6" />
           </button>
