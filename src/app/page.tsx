@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import { 
   IndianRupee, TrendingUp, Package, AlertTriangle,
-  QrCode, ShoppingCart, Banknote, MessageCircle, Truck, History as HistoryIcon
+  QrCode, ShoppingCart, Banknote, MessageCircle, Truck, History as HistoryIcon,
+  Zap, ArrowRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -167,6 +168,37 @@ export default function Dashboard() {
 
       <div className="grid gap-8 md:grid-cols-12">
         <div className="md:col-span-8 space-y-8">
+          {/* NEW: Operational Quick-Start */}
+          <Card className="border-none shadow-2xl bg-zinc-900 text-white rounded-[2.5rem] overflow-hidden relative group">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] -mr-32 -mt-32" />
+             <CardHeader className="p-8 pb-4 relative z-10">
+                <CardTitle className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+                   <Zap className="h-6 w-6 text-amber-400 fill-amber-400" /> Administrative Quick-Start
+                </CardTitle>
+                <CardDescription className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Follow these steps to manage your business daily</CardDescription>
+             </CardHeader>
+             <CardContent className="p-8 pt-0 relative z-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                   {[
+                     { step: "01", title: "Create Bill", desc: "Open POS and scan items to start a sale.", link: "/pos" },
+                     { step: "02", title: "Manage Stock", desc: "Add new stock or brands in Master Catalog.", link: "/inventory" },
+                     { step: "03", title: "Track Udhar", desc: "Check customer balances in Digital Khata.", link: "/khata" },
+                     { step: "04", title: "Audit Bills", desc: "View every invoice and supplier bill in Vault.", link: "/vault" }
+                   ].map((item, i) => (
+                     <Link key={i} href={item.link}>
+                        <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="text-[10px] font-black text-blue-500">{item.step}</span>
+                              <ArrowRight className="h-3 w-3 text-zinc-600 group-hover:translate-x-1 transition-transform" />
+                           </div>
+                           <h4 className="font-black text-sm uppercase italic tracking-tight mb-1">{item.title}</h4>
+                           <p className="text-[10px] font-bold text-zinc-500 leading-tight">{item.desc}</p>
+                        </div>
+                     </Link>
+                   ))}
+                </div>
+             </CardContent>
+          </Card>
           <Card className="border-zinc-200 shadow-xl rounded-2xl overflow-hidden">
             <CardHeader className="p-6 pb-2">
               <CardTitle className="text-xl font-black uppercase italic tracking-tight">EOD Reconciliation</CardTitle>
