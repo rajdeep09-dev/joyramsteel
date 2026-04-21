@@ -78,7 +78,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
             version_clock: Date.now()
           });
 
-          // 2. Create Variant with Auto-Barcode
+          // 2. Create Variant with Auto-Barcode and Combo support
+          const pricingType = (p.bundle_qty && p.bundle_price) ? 'bundle' : 'standard';
+          
           await db.variants.add({
             id: uuidv4(),
             product_id: productId,
@@ -90,7 +92,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
             msp: parseFloat(p.msp || p.mrp || "0"),
             base_price: parseFloat(p.mrp || "0"),
             barcode: p.barcode || generateBarcode(),
-            pricing_type: 'standard',
+            pricing_type: pricingType,
+            bundle_qty: pricingType === 'bundle' ? parseInt(p.bundle_qty) : undefined,
+            bundle_price: pricingType === 'bundle' ? parseFloat(p.bundle_price) : undefined,
             created_at: now,
             updated_at: now,
             is_deleted: 0,
@@ -128,7 +132,9 @@ export function BulkImportModal({ isOpen, onClose }: BulkImportModalProps) {
                <div className="p-6 bg-zinc-50 dark:bg-zinc-800 rounded-full shadow-inner"><UploadCloud className="h-12 w-12 text-zinc-300 group-hover:text-blue-500 transition-colors" /></div>
                <div className="text-center">
                   <p className="font-black uppercase text-[10px] tracking-widest text-zinc-400 mb-1">Drop CSV Catalog Here</p>
-                  <p className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest leading-relaxed">Columns needed: Name, Category, Size, Unit, Qty, MRP, MSP</p>
+                  <p className="text-[8px] font-bold text-zinc-300 uppercase tracking-widest leading-relaxed">
+                    Columns: Name, Category, Size, Unit, Qty, MRP, MSP, <span className="text-blue-500">bundle_qty, bundle_price</span>
+                  </p>
                </div>
             </div>
           ) : (

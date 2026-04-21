@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Plus, Search, PackageOpen, Tag, Barcode, Camera, 
-  UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, Loader2
+  UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, Loader2, Info
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,27 +262,28 @@ export default function Inventory() {
                 <SelectContent className="bg-white dark:bg-zinc-800 z-[6000]">{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
 
-              {/* Simplified Pricing Selector */}
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Mode</Label>
+              {/* Simplified Pricing Selector with asking logic */}
+              <div className="space-y-3">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Select Pricing Strategy</Label>
                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'standard', label: 'Single Pcs', mode: 'standard' },
-                      { id: 'bundle', label: 'Combo Deal', mode: 'bundle' },
-                      { id: 'weight', label: 'By Weight', mode: 'weight' }
+                      { id: 'standard', label: 'Single Pcs', mode: 'standard', info: 'Simple Unit Price' },
+                      { id: 'bundle', label: 'Combo Deal', mode: 'bundle', info: 'Multi-buy Savings' },
+                      { id: 'weight', label: 'By Weight', mode: 'weight', info: 'Kg-based Pricing' }
                     ].map((m) => (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => setPricingMode(m.mode as any)}
                         className={cn(
-                          "h-12 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all border",
+                          "flex flex-col items-center justify-center h-16 rounded-xl transition-all border p-1",
                           (newPricingType === m.id || (m.id === 'weight' && newUnit === 'kg')) 
-                            ? "bg-zinc-900 text-white border-zinc-900 shadow-lg scale-[1.02]" 
-                            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-700"
+                            ? "bg-zinc-900 text-white border-zinc-900 shadow-xl scale-[1.05] z-10" 
+                            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-700 hover:border-zinc-200"
                         )}
                       >
-                        {m.label}
+                        <span className="text-[9px] font-black uppercase tracking-tighter leading-none mb-1">{m.label}</span>
+                        <span className="text-[7px] font-bold opacity-50 uppercase tracking-widest leading-none">{m.info}</span>
                       </button>
                     ))}
                  </div>
@@ -292,14 +293,18 @@ export default function Inventory() {
               <div className="grid grid-cols-2 gap-4">
                 <Input type="number" value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="Stock" className="h-12 rounded-xl" />
                 {newPricingType === 'standard' ? (
-                  <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Price ₹" className="h-12 rounded-xl" />
+                  <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Retail Price ₹" className="h-12 rounded-xl" />
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price (1 pc) ₹" className="h-12 rounded-xl" />
-                    <div className="grid grid-cols-2 gap-2">
-                       <Input type="number" value={newBundleQty} onChange={e=>setNewBundleQty(e.target.value)} placeholder="Combo Qty (e.g. 4)" className="h-12 rounded-xl bg-blue-50/50" />
-                       <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Combo Price ₹" className="h-12 rounded-xl bg-blue-50/50 font-bold" />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 px-2">
+                       <Info className="h-3 w-3 text-blue-500" />
+                       <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">Define Combo Rules Below:</span>
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                       <Input type="number" value={newBundleQty} onChange={e=>setNewBundleQty(e.target.value)} placeholder="Qty (e.g. 4)" className="h-12 rounded-xl bg-blue-50/50 border-blue-100" />
+                       <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total ₹ (e.g. 100)" className="h-12 rounded-xl bg-blue-50/50 border-blue-100 font-bold" />
+                    </div>
+                    <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Price for 1 pc (Loose) ₹" className="h-12 rounded-xl" />
                   </div>
                 )}
               </div>
