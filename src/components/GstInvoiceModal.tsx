@@ -107,29 +107,40 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
   }, []);
 
   const addItem = (p?: any) => {
+    // BRUTAL ENFORCEMENT: Force bundle qty and per-unit rate immediately
     const isBundle = p?.pricing_type === 'bundle' && p?.bundle_price && p?.bundle_qty;
-    const initialQty = isBundle ? p.bundle_qty : 1;
-    const effectiveRate = isBundle ? (p.bundle_price / p.bundle_qty) : (p?.base_price || 0);
+    const finalQty = isBundle ? p.bundle_qty : 1;
+    const perUnitRate = isBundle ? (p.bundle_price / p.bundle_qty) : (p?.base_price || 0);
 
     const newItem = {
       desc: p ? `${p.productName} - ${p.size}`.toUpperCase() + (isBundle ? ` (PACK OF ${p.bundle_qty})` : "") : "",
       hsn: "7323",
-      qty: initialQty.toString(),
+      qty: finalQty.toString(),
       unit: p?.unit || 'pcs',
-      finalRate: p ? effectiveRate.toFixed(2) : "",
+      finalRate: p ? perUnitRate.toFixed(2) : "",
       gstRate: "18",
       taxableValue: 0, cgst: 0, sgst: 0, total: 0
     };
 
     if (p) {
-      const tot = initialQty * effectiveRate;
-      const tax = tot / 1.18;
-      newItem.taxableValue = parseFloat(tax.toFixed(2));
-      newItem.cgst = parseFloat(((tot - tax) / 2).toFixed(2));
-      newItem.sgst = parseFloat(((tot - tax) / 2).toFixed(2));
-      newItem.total = parseFloat(tot.toFixed(2));
+      const lineTotal = finalQty * perUnitRate;
+      const taxable = lineTotal / 1.18;
+      newItem.taxableValue = parseFloat(taxable.toFixed(2));
+      newItem.cgst = parseFloat(((lineTotal - taxable) / 2).toFixed(2));
+      newItem.sgst = parseFloat(((lineTotal - taxable) / 2).toFixed(2));
+      newItem.total = parseFloat(lineTotal.toFixed(2));
     }
-    setItems([...items, newItem]);
+    
+    // Add to items list and trigger UI refresh
+    setItems(prev => {
+      // If the first item is empty, replace it
+      if (prev.length === 1 && !prev[0].desc && !prev[0].finalRate) {
+        return [newItem];
+      }
+      return [...prev, newItem];
+    });
+
+    if (p) toast.success(`Added ${isBundle ? 'Combo Pack' : 'Item'}: ${p.productName}`);
   };
 
   const updateItem = (index: number, field: string, value: string) => {
