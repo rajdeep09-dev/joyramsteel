@@ -541,20 +541,40 @@ export default function Inventory() {
                 </div>
                 
                 <div className="space-y-2">
-                   {newPricingType === 'standard' ? (
-                     <>
-                       <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
-                         {newUnit === 'kg' ? "Price per KG ₹" : "Retail Price ₹"}
-                       </Label>
-                       <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
-                     </>
+                   {newUnit === 'kg' ? (
+                     <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 ml-1">
+                          Weight Pricing (Per KG)
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-blue-600">₹</span>
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            value={newPrice} 
+                            onChange={e=>setNewPrice(e.target.value)} 
+                            placeholder="Price per KG" 
+                            className="h-14 pl-10 rounded-xl bg-white dark:bg-zinc-900 border-none font-black text-xl text-blue-600 shadow-inner" 
+                          />
+                        </div>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest px-1">Set the rate for 1.000 KG of this product</p>
+                     </div>
                    ) : (
                      <>
-                       <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
-                       <div className="flex flex-col gap-2">
-                          <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
-                          <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
-                       </div>
+                       {newPricingType === 'standard' ? (
+                         <>
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label>
+                           <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
+                         </>
+                       ) : (
+                         <>
+                           <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
+                           <div className="flex flex-col gap-2">
+                              <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
+                              <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
+                           </div>
+                         </>
+                       )}
                      </>
                    )}
                 </div>
