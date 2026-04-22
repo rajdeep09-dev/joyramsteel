@@ -361,27 +361,27 @@ export default function Inventory() {
              <div className="flex items-center gap-4"><img src="/joyramlogo.png" className="w-16 h-16 rounded-full" /><h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">Joy Ram Steel</h1></div>
              <p className="font-black uppercase text-xs tracking-widest opacity-40">Stock Catalog</p>
           </div>
-          <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 gap-10">
             {filteredVariants.map(v => (
-              <div key={v.id} className="border-2 border-zinc-200 p-8 rounded-[2rem] flex flex-col items-center gap-6 text-left bg-white shadow-sm overflow-visible">
-                 <div className="h-40 w-40 bg-zinc-50 rounded-2xl flex items-center justify-center overflow-hidden border border-zinc-100">
+              <div key={v.id} className="border-2 border-zinc-200 p-10 rounded-[3rem] flex flex-col items-center gap-8 text-left bg-white shadow-md overflow-visible">
+                 <div className="h-48 w-48 bg-zinc-50 rounded-[2rem] flex items-center justify-center overflow-hidden border border-zinc-100">
                     <img src={v.image_url || v.parentImage || '/joyramlogo.png'} className="w-full h-full object-cover" />
                  </div>
-                 <div className="text-center w-full space-y-2">
-                    <p className="font-black text-[14px] uppercase truncate leading-none text-zinc-900 tracking-tight">{v.productName}</p>
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">{v.size}</p>
-                    <p className="text-2xl font-black tracking-tighter italic text-blue-600">₹{(v.pricing_type === 'bundle' && v.bundle_price) ? v.bundle_price : v.base_price}</p>
+                 <div className="text-center w-full space-y-3">
+                    <p className="font-black text-[18px] uppercase truncate leading-none text-zinc-900 tracking-tight">{v.productName}</p>
+                    <p className="text-[12px] font-black text-zinc-400 uppercase tracking-[0.3em]">{v.size}</p>
+                    <p className="text-3xl font-black tracking-tighter italic text-blue-600">₹{(v.pricing_type === 'bundle' && v.bundle_price) ? v.bundle_price : v.base_price}</p>
                  </div>
-                 <div className="bg-white p-4 rounded-2xl border border-zinc-100 w-full flex flex-col items-center justify-center min-h-[100px] overflow-visible">
+                 <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 w-full flex flex-col items-center justify-center min-h-[140px] overflow-visible">
                     <Barcode 
                       value={v.barcode || "000"} 
-                      width={1.2} 
-                      height={60} 
-                      fontSize={14} 
+                      width={2.0} 
+                      height={100} 
+                      fontSize={16} 
                       fontOptions="bold"
                       background="#ffffff"
                       lineColor="#000000"
-                      margin={10}
+                      margin={15}
                       displayValue={true}
                     />
                  </div>
