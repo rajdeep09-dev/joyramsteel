@@ -337,9 +337,23 @@ export default function Inventory() {
   })).filter(v => v.productName.toLowerCase().includes(search.toLowerCase()) || v.size.toLowerCase().includes(search.toLowerCase()) || v.barcode?.includes(search));
 
   const setPricingMode = (mode: 'standard' | 'bundle' | 'weight') => {
-    if (mode === 'standard') { setNewUnit('pcs'); setNewPricingType('standard'); }
-    else if (mode === 'bundle') { setNewUnit('pcs'); setNewPricingType('bundle'); }
-    else if (mode === 'weight') { setNewUnit('kg'); setNewPricingType('standard'); }
+    if (mode === 'standard') { 
+      setNewUnit('pcs'); 
+      setNewPricingType('standard'); 
+      setNewUnitsPerCombo("1");
+    }
+    else if (mode === 'bundle') { 
+      setNewUnit('pcs'); 
+      setNewPricingType('bundle'); 
+      setNewUnitsPerCombo("1");
+    }
+    else if (mode === 'weight') { 
+      setNewUnit('kg'); 
+      setNewPricingType('standard'); 
+      setNewUnitsPerCombo("1");
+      setNewBundlePrice("");
+      setNewBundleQty("");
+    }
   };
 
   const handleDeleteMasterProduct = async (id: string, name: string) => {
@@ -505,8 +519,46 @@ export default function Inventory() {
                 <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Parent Entity (Brand)</Label><Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}><SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"><SelectValue>{products.find(p => p.id === selectedProductId)?.name || "Select Brand"}</SelectValue></SelectTrigger><SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">{products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}</SelectContent></Select></div>
               )}
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Strategy</Label><div className="grid grid-cols-3 gap-2">{['standard', 'bundle', 'weight'].map(m => (<button key={m} type="button" onClick={()=>setPricingMode(m as any)} className={cn("h-12 rounded-xl text-[8px] font-black uppercase tracking-tighter border transition-all", (newPricingType === m || (m === 'weight' && newUnit === 'kg')) ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-lg scale-105" : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:border-zinc-700")}>{m === 'bundle' ? 'Combo' : m}</button>))}</div></div>
-              <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size Details</Label><Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Units in Pack</Label><Input type="number" value={newUnitsPerCombo} onChange={e=>setNewUnitsPerCombo(e.target.value)} placeholder="1" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div></div>
-              <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Opening Stock</Label><Input type="number" value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div><div className="space-y-2">{newPricingType === 'standard' ? (<><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label><Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" /></>) : (<><Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label><div className="flex flex-col gap-2"><Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" /><Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" /></div></>)}</div></div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size / Dimension</Label>
+                    <Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre or Large" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                      {newUnit === 'kg' ? "Min Sell Qty (KG)" : "Units in Pack"}
+                    </Label>
+                    <Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newUnitsPerCombo} onChange={e=>setNewUnitsPerCombo(e.target.value)} placeholder="1" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                     {newUnit === 'kg' ? "Stock in KG" : "Opening Stock"}
+                   </Label>
+                   <Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
+                </div>
+                
+                <div className="space-y-2">
+                   {newPricingType === 'standard' ? (
+                     <>
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                         {newUnit === 'kg' ? "Price per KG ₹" : "Retail Price ₹"}
+                       </Label>
+                       <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
+                     </>
+                   ) : (
+                     <>
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
+                       <div className="flex flex-col gap-2">
+                          <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
+                          <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
+                       </div>
+                     </>
+                   )}
+                </div>
+              </div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Variant Identity</Label><div className="border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 flex flex-col items-center gap-3 relative bg-zinc-50 dark:bg-zinc-800/50 group hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors overflow-hidden text-center text-zinc-400 font-bold uppercase text-[9px]"><input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e=>setCapturedFile(e.target.files?.[0] || null)} />{capturedFile ? (<div className="relative w-full h-20"><img src={URL.createObjectURL(capturedFile)} className="w-full h-full object-cover rounded-xl" /><div className="absolute inset-0 bg-blue-600/10 animate-pulse rounded-xl" /></div>) : (<><Camera className="h-8 w-8 text-zinc-300" />Update Media</>)}</div></div>
               <Button onClick={handleSaveVariant} disabled={isUploading} className="w-full h-20 rounded-[2.5rem] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">{isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (editingVariant ? 'UPDATE DEPLOYMENT' : 'AUTHORISE DEPLOYMENT')}</Button>
            </div>
