@@ -6,7 +6,7 @@ import {
   Plus, Search, PackageOpen, Tag, Barcode as BarcodeIcon, Camera, 
   UploadCloud, AlertTriangle, Truck, Trash2, Link as LinkIcon, 
   Loader2, Info, Edit2, LayoutGrid, List, CheckCircle2, X, Download,
-  Settings2, Layers, CheckSquare, Square, FolderInput
+  Settings2, Layers, CheckSquare, Square, FolderInput, Image as ImageIcon, FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
@@ -108,18 +114,15 @@ export default function Inventory() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isExporting, setIsExporting] = useState(false);
   
-  // Selection Logic
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const isSelectionMode = selectedIds.length > 0;
 
-  // Master Product Modal
   const [isMasterModalOpen, setIsMasterModalOpen] = useState(false);
   const [editingMaster, setEditingMaster] = useState<any>(null);
   const [newProductName, setNewProductName] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("");
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   
-  // Variant Modal
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [editingVariant, setEditingVariant] = useState<any>(null);
   const [newSize, setNewSize] = useState("");
@@ -141,9 +144,6 @@ export default function Inventory() {
   const variants = useLiveQuery(() => db.variants.where('is_deleted').equals(0).toArray()) || [];
   const categories = useLiveQuery(() => db.categories.where('is_deleted').equals(0).toArray()) || [];
 
-  /**
-   * Smart Purge Engine
-   */
   const smartPurgeImage = async (url?: string) => {
     if (!url || !url.includes("supabase.co")) return;
     const variantCount = await db.variants.where('image_url').equals(url).filter(v => v.is_deleted === 0).count();
@@ -304,20 +304,28 @@ export default function Inventory() {
     toast.success("Bulk Assignment Ready");
   };
 
-  const handleExportCatalog = async () => {
-    if (variants.length === 0) return toast.error("No items to export");
+  const handleExport = async (type: 'pdf' | 'img') => {
+    if (variants.length === 0) return toast.error("Catalog is empty");
     setIsExporting(true);
-    const id = toast.loading("Generating Master Catalog...");
+    const id = toast.loading(`Generating HD ${type.toUpperCase()}...`);
     try {
       const element = document.getElementById('catalog-export-template');
-      if (!element) throw new Error("Template missing");
-      const url = await toJpeg(element, { pixelRatio: 1.5, quality: 0.8, backgroundColor: '#ffffff' });
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
-      pdf.addImage(url, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-      pdf.save(`JRS_Catalog_${new Date().toLocaleDateString()}.pdf`);
-      toast.success("Catalog Exported", { id });
-    } catch {
-      toast.error("Export Failed", { id });
+      if (!element) throw new Error("Template not found");
+      const dataUrl = await toJpeg(element, { pixelRatio: 3, quality: 0.95, backgroundColor: '#ffffff', cacheBust: true });
+      if (type === 'img') {
+        const link = document.createElement('a');
+        link.download = `JRS_Catalog_${Date.now()}.jpg`;
+        link.href = dataUrl;
+        link.click();
+        toast.success("HD Image Exported", { id });
+      } else {
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297, undefined, 'SLOW');
+        pdf.save(`JRS_Pro_Catalog_${new Date().toLocaleDateString()}.pdf`);
+        toast.success("Pro PDF Exported", { id });
+      }
+    } catch (err) {
+      toast.error("HD Export Failed", { id });
     } finally { setIsExporting(false); }
   };
 
@@ -332,6 +340,14 @@ export default function Inventory() {
     if (mode === 'standard') { setNewUnit('pcs'); setNewPricingType('standard'); }
     else if (mode === 'bundle') { setNewUnit('pcs'); setNewPricingType('bundle'); }
     else if (mode === 'weight') { setNewUnit('kg'); setNewPricingType('standard'); }
+  };
+
+  const handleDeleteMasterProduct = async (id: string, name: string) => {
+    const hasVariants = variants.some(v => v.product_id === id && v.is_deleted === 0);
+    if (hasVariants) return toast.error("Delete all sizes first!");
+    if (!confirm(`Delete master entry "${name}"?`)) return;
+    await db.products.update(id, { is_deleted: 1, updated_at: new Date().toISOString() });
+    toast.success("Master Product removed");
   };
 
   return (
@@ -389,7 +405,23 @@ export default function Inventory() {
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setIsCategoryManagerOpen(true)} className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm flex gap-2"><Settings2 className="h-4 w-4" /> Depts</Button>
-          <Button variant="outline" onClick={handleExportCatalog} disabled={isExporting} className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white flex gap-2">{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Catalog</Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+               <div className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border border-zinc-200 dark:border-zinc-800 dark:text-white flex items-center justify-center px-4 cursor-pointer gap-2">
+                  {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Catalog
+               </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="rounded-2xl p-2 bg-white dark:bg-zinc-900 border-none shadow-2xl min-w-[200px] z-[6000]">
+               <DropdownMenuItem onClick={() => handleExport('img')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer">
+                  <ImageIcon className="h-4 w-4 text-blue-500" /> Export HD Image
+               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer">
+                  <FileText className="h-4 w-4 text-red-500" /> Export Pro PDF
+               </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-11 rounded-xl font-black uppercase text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
           <Button onClick={() => handleOpenMasterModal()} className="h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase text-[10px] tracking-widest px-6 shadow-xl active:scale-95"><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
         </div>
@@ -417,7 +449,7 @@ export default function Inventory() {
               return (
                 <div key={v.id} className="relative group">
                   <div className={cn("transition-all duration-300", isSelected && "scale-95 opacity-80")}><ProductCard variant={v as any} onClick={() => isSelectionMode ? setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]) : setSelectedBarcodeItem(v)} /></div>
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]); }} className={cn("absolute top-3 left-3 p-2 rounded-xl transition-all z-20 shadow-xl", isSelected ? "bg-blue-600 text-white" : "bg-white/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100")}>{isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}</button>
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]); }} className={cn("absolute top-3 left-3 p-2 rounded-xl transition-all z-20 shadow-xl", isSelected ? "bg-blue-600 text-white" : "bg-white/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-blue-600")}>{isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}</button>
                   <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all"><button onClick={(e) => { e.stopPropagation(); handleOpenVariantModal(v); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-blue-600 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-blue-600 hover:text-white"><Edit2 className="h-4 w-4" /></button><button onClick={(e) => { e.stopPropagation(); handleDeleteVariant(v); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-red-500 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-red-500 hover:text-white"><Trash2 className="h-4 w-4" /></button></div>
                 </div>
               );
