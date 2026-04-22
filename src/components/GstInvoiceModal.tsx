@@ -70,28 +70,31 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
         setShopDetails(viewOnlyData.shopDetails);
       } else if (initialItems && initialItems.length > 0) {
         const formatted = initialItems.map(item => {
-          // Rule: Intelligent Bundle Resolution
+          // Intelligent Bundle Resolution
           const isBundle = item.pricing_type === 'bundle' && item.bundle_price && item.bundle_qty;
           
-          // If it's a bundle, the 'Rate' in GST should be the per-piece portion 
-          // so that (Rate * Qty) equals the total bundle price.
+          // Force Qty to bundle_qty for combos, otherwise use original qty
+          const effectiveQty = isBundle ? item.bundle_qty : item.qty;
+          
+          // Calculate per-unit rate to ensure (Rate * Qty) == Bundle Total
           const effectiveRate = isBundle 
             ? (item.bundle_price / item.bundle_qty) 
             : item.base_price;
 
           const taxable = effectiveRate / 1.18;
+          const totalLine = effectiveRate * effectiveQty;
           
           return {
             desc: `${item.productName} - ${item.size}`.toUpperCase() + (isBundle ? ` (PACK OF ${item.bundle_qty})` : ""),
             hsn: "7323",
-            qty: item.qty.toString(),
+            qty: effectiveQty.toString(),
             unit: item.unit || 'pcs',
             finalRate: effectiveRate.toFixed(2),
             gstRate: "18",
-            taxableValue: parseFloat((taxable * item.qty).toFixed(2)),
-            cgst: parseFloat((((effectiveRate - taxable) * item.qty) / 2).toFixed(2)),
-            sgst: parseFloat((((effectiveRate - taxable) * item.qty) / 2).toFixed(2)),
-            total: parseFloat((effectiveRate * item.qty).toFixed(2))
+            taxableValue: parseFloat((taxable * effectiveQty).toFixed(2)),
+            cgst: parseFloat((((effectiveRate - taxable) * effectiveQty) / 2).toFixed(2)),
+            sgst: parseFloat((((effectiveRate - taxable) * effectiveQty) / 2).toFixed(2)),
+            total: parseFloat(totalLine.toFixed(2))
           };
         });
         setItems(formatted);
@@ -129,7 +132,7 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
       newItem.taxableValue = parseFloat(tax.toFixed(2));
       newItem.cgst = parseFloat(((tot - tax) / 2).toFixed(2));
       newItem.sgst = parseFloat(((tot - tax) / 2).toFixed(2));
-      newItem.total = tot;
+      newItem.total = parseFloat(tot.toFixed(2));
     }
     setItems([...items, newItem]);
   };
