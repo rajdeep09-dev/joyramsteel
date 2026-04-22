@@ -244,7 +244,10 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
                           <p className="font-black text-xl uppercase italic leading-none mb-2 dark:text-white truncate w-40">{item.productName}</p>
                           <div className="flex gap-2">
                              <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase border-zinc-200 dark:border-zinc-700 dark:text-zinc-400">{item.size}</Badge>
-                             <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase bg-blue-50 text-blue-600 border-none dark:bg-blue-900/20 shadow-sm">₹{item.base_price}</Badge>
+                             <Badge variant="outline" className={cn("rounded-lg text-[9px] font-black uppercase border-none shadow-sm", item.pricing_type === 'bundle' ? "bg-emerald-100 text-emerald-600" : "bg-blue-50 text-blue-600 dark:bg-blue-900/20")}>
+                               ₹{(item.pricing_type === 'bundle' && item.bundle_price) ? item.bundle_price : item.base_price}
+                               {item.pricing_type === 'bundle' ? ' (COMBO)' : ''}
+                             </Badge>
                           </div>
                         </div>
                       </div>
@@ -301,10 +304,15 @@ export function ProductSearch({ onSelect, onQueryChange, className, placeholder 
                             </div>
                             <div>
                               <div className="font-black text-xl uppercase italic leading-none mb-1.5">{item.productName}</div>
-                              <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest opacity-60">{item.size} &bull; {item.category}</div>
+                              <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-widest opacity-60">
+                                {item.size} &bull; {item.category}
+                                {item.pricing_type === 'bundle' && <span className="text-emerald-600 ml-1 font-black">BUNDLE</span>}
+                              </div>
                             </div>
                           </div>
-                          <div className="font-black text-2xl italic tracking-tighter">₹{item.base_price.toLocaleString()}</div>
+                          <div className="font-black text-2xl italic tracking-tighter">
+                            ₹{(item.pricing_type === 'bundle' && item.bundle_price) ? item.bundle_price.toLocaleString() : item.base_price.toLocaleString()}
+                          </div>
                         </motion.div>
                       ))}
                     </div>
