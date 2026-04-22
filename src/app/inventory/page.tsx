@@ -49,7 +49,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BarcodeViewModal } from "@/components/BarcodeViewModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Barcode from "react-barcode";
-import { toJpeg } from "html-to-image";
+import { toJpeg, toPng } from "html-to-image";
 import jsPDF from "jspdf";
 
 /**
@@ -82,18 +82,18 @@ function CategoryManager({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="rounded-[2rem] p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
+      <DialogContent className="w-[95%] sm:max-w-lg rounded-[2rem] p-6 md:p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter dark:text-white flex items-center gap-3">
+          <DialogTitle className="text-xl md:text-2xl font-black italic uppercase tracking-tighter dark:text-white flex items-center gap-3">
              <Layers className="h-6 w-6 text-blue-600" /> Manage Departments
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 pt-6 text-left">
+        <div className="space-y-6 pt-4 md:pt-6 text-left">
            <div className="flex gap-2">
-              <Input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. NON-STICK" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold dark:bg-zinc-800 dark:border-zinc-700" />
-              <Button onClick={handleAdd} className="h-12 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold px-6">Add</Button>
+              <Input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="e.g. NON-STICK" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-bold dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" />
+              <Button onClick={handleAdd} className="h-12 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-bold px-4 md:px-6">Add</Button>
            </div>
-           <ScrollArea className="h-48 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4">
+           <ScrollArea className="h-48 md:h-64 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-4">
               <div className="space-y-2">
                  {categories.map(c => (
                    <div key={c.id} className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl">
@@ -130,7 +130,7 @@ export default function Inventory() {
   const [newPrice, setNewPrice] = useState("");
   const [newMsp, setNewMsp] = useState("");
   const [newUnit, setNewUnit] = useState("pcs");
-  const [newPricingType, setNewPricingType] = useState<'standard' | 'bundle'>('standard');
+  const [newPricingType, setNewPricingType] = useState<'standard' | 'bundle' | 'weight'>('standard');
   const [newBundleQty, setNewBundleQty] = useState("");
   const [newBundlePrice, setNewBundlePrice] = useState("");
   const [newUnitsPerCombo, setNewUnitsPerCombo] = useState("1");
@@ -200,7 +200,7 @@ export default function Inventory() {
       setNewPrice(v.base_price.toString());
       setNewMsp(v.msp?.toString() || "");
       setNewUnit(v.unit);
-      setNewPricingType(v.pricing_type);
+      setNewPricingType(v.pricing_type as any);
       setNewBundleQty(v.bundle_qty?.toString() || "");
       setNewBundlePrice(v.bundle_price?.toString() || "");
       setNewUnitsPerCombo(v.units_per_combo?.toString() || "1");
@@ -237,16 +237,16 @@ export default function Inventory() {
         product_id: selectedProductId,
         size: newSize.toUpperCase(),
         unit: newUnit as any,
-        stock: parseInt(newStock),
+        stock: parseFloat(newStock),
         dented_stock: 0,
-        cost_price: parseInt(newMsp || newPrice), 
-        msp: parseInt(newMsp || newPrice), 
-        base_price: parseInt(newPrice), 
+        cost_price: parseFloat(newMsp || newPrice), 
+        msp: parseFloat(newMsp || newPrice), 
+        base_price: parseFloat(newPrice), 
         image_url: url,
         pricing_type: newPricingType, 
         bundle_qty: newPricingType === 'bundle' ? parseInt(newBundleQty) : undefined,
-        bundle_price: newPricingType === 'bundle' ? parseInt(newBundlePrice) : undefined,
-        units_per_combo: parseInt(newUnitsPerCombo) || 1,
+        bundle_price: newPricingType === 'bundle' ? parseFloat(newBundlePrice) : undefined,
+        units_per_combo: parseFloat(newUnitsPerCombo) || 1,
         updated_at: now,
         sync_status: 'pending',
         version_clock: (editingVariant?.version_clock || 0) + 1
@@ -311,17 +311,17 @@ export default function Inventory() {
     try {
       const element = document.getElementById('catalog-export-template');
       if (!element) throw new Error("Template not found");
-      const dataUrl = await toJpeg(element, { pixelRatio: 3, quality: 0.95, backgroundColor: '#ffffff', cacheBust: true });
+      const dataUrl = await toPng(element, { pixelRatio: 4, backgroundColor: '#ffffff', cacheBust: true });
       if (type === 'img') {
         const link = document.createElement('a');
-        link.download = `JRS_Catalog_${Date.now()}.jpg`;
+        link.download = `JRS_Catalog_${Date.now()}.png`;
         link.href = dataUrl;
         link.click();
         toast.success("HD Image Exported", { id });
       } else {
-        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
-        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, 297, undefined, 'SLOW');
-        pdf.save(`JRS_Pro_Catalog_${new Date().toLocaleDateString()}.pdf`);
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: false });
+        pdf.addImage(dataUrl, 'PNG', 0, 0, 210, 297, undefined, 'SLOW');
+        pdf.save(`JRS_Official_Catalog_${new Date().toLocaleDateString()}.pdf`);
         toast.success("Pro PDF Exported", { id });
       }
     } catch (err) {
@@ -337,23 +337,9 @@ export default function Inventory() {
   })).filter(v => v.productName.toLowerCase().includes(search.toLowerCase()) || v.size.toLowerCase().includes(search.toLowerCase()) || v.barcode?.includes(search));
 
   const setPricingMode = (mode: 'standard' | 'bundle' | 'weight') => {
-    if (mode === 'standard') { 
-      setNewUnit('pcs'); 
-      setNewPricingType('standard'); 
-      setNewUnitsPerCombo("1");
-    }
-    else if (mode === 'bundle') { 
-      setNewUnit('pcs'); 
-      setNewPricingType('bundle'); 
-      setNewUnitsPerCombo("1");
-    }
-    else if (mode === 'weight') { 
-      setNewUnit('kg'); 
-      setNewPricingType('standard'); 
-      setNewUnitsPerCombo("1");
-      setNewBundlePrice("");
-      setNewBundleQty("");
-    }
+    if (mode === 'standard') { setNewUnit('pcs'); setNewPricingType('standard'); setNewUnitsPerCombo("1"); }
+    else if (mode === 'bundle') { setNewUnit('pcs'); setNewPricingType('bundle'); setNewUnitsPerCombo("1"); }
+    else if (mode === 'weight') { setNewUnit('kg'); setNewPricingType('weight' as any); setNewUnitsPerCombo("1"); setNewBundlePrice(""); setNewBundleQty(""); }
   };
 
   const handleDeleteMasterProduct = async (id: string, name: string) => {
@@ -365,10 +351,11 @@ export default function Inventory() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20 text-left px-4 md:px-0">
+    <div className="space-y-6 max-w-7xl mx-auto pb-24 md:pb-20 text-left px-4 md:px-0">
       <BulkImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
       <CategoryManager isOpen={isCategoryManagerOpen} onClose={() => setIsCategoryManagerOpen(false)} />
       
+      {/* Export Template (Hidden) */}
       <div className="fixed -left-[9999px] top-0 pointer-events-none">
         <div id="catalog-export-template" className="w-[210mm] min-h-[297mm] bg-white p-10 text-black flex flex-col font-sans">
           <div className="flex justify-between items-end border-b-4 border-black pb-8 mb-10 text-left">
@@ -387,17 +374,7 @@ export default function Inventory() {
                     <p className="text-3xl font-black tracking-tighter italic text-blue-600">₹{(v.pricing_type === 'bundle' && v.bundle_price) ? v.bundle_price : v.base_price}</p>
                  </div>
                  <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 w-full flex flex-col items-center justify-center min-h-[140px] overflow-visible">
-                    <Barcode 
-                      value={v.barcode || "000"} 
-                      width={2.0} 
-                      height={100} 
-                      fontSize={16} 
-                      fontOptions="bold"
-                      background="#ffffff"
-                      lineColor="#000000"
-                      margin={15}
-                      displayValue={true}
-                    />
+                    <Barcode value={v.barcode || "000"} width={2.0} height={100} fontSize={16} fontOptions="bold" background="#ffffff" lineColor="#000000" margin={15} displayValue={true} />
                  </div>
               </div>
             ))}
@@ -407,18 +384,19 @@ export default function Inventory() {
 
       <BarcodeViewModal variant={selectedBarcodeItem} isOpen={!!selectedBarcodeItem} onClose={() => setSelectedBarcodeItem(null)} />
       
+      {/* Master Product Dialog */}
       <Dialog open={isMasterModalOpen} onOpenChange={setIsMasterModalOpen}>
-        <DialogContent className="rounded-[2rem] p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="text-2xl font-black italic uppercase dark:text-white leading-tight">{editingMaster ? "Modify Brand" : "New Master Entry"}</DialogTitle></DialogHeader>
-          <div className="space-y-6 pt-6 text-left">
+        <DialogContent className="w-[95%] sm:max-w-md rounded-[2.5rem] p-6 md:p-8 bg-white dark:bg-zinc-900 border-none shadow-2xl">
+          <DialogHeader><DialogTitle className="text-xl md:text-2xl font-black italic uppercase dark:text-white leading-tight">{editingMaster ? "Modify Brand" : "New Master Entry"}</DialogTitle></DialogHeader>
+          <div className="space-y-6 pt-4 md:pt-6">
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Brand Name</Label>
-              <Input value={newProductName} onChange={e=>setNewProductName(e.target.value)} className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold" />
+              <Input value={newProductName} onChange={e=>setNewProductName(e.target.value)} className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
             </div>
             <div className="space-y-2 text-left">
               <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Department</Label>
               <Select onValueChange={(val: string | null) => val && setNewProductCategory(val)} value={newProductCategory}>
-                <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700"><SelectValue placeholder="Choose Dept..." /></SelectTrigger>
+                <SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"><SelectValue placeholder="Choose Dept..." /></SelectTrigger>
                 <SelectContent className="bg-white dark:bg-zinc-800 z-[6000]">
                    {categories.map(c => <SelectItem key={c.id} value={c.name} className="font-bold">{c.name}</SelectItem>)}
                    <div className="p-2 border-t border-zinc-100 dark:border-zinc-800 mt-2"><Button onClick={() => { setIsMasterModalOpen(false); setIsCategoryManagerOpen(true); }} variant="outline" className="w-full h-10 text-[9px] font-black uppercase"><Plus className="h-3 w-3 mr-2" /> New Dept</Button></div>
@@ -430,157 +408,160 @@ export default function Inventory() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
         <div className="space-y-1 text-left">
-          <h2 className="text-3xl font-black text-zinc-900 dark:text-white uppercase italic tracking-tighter">Inventory</h2>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest opacity-60">Master Catalog</p>
+          <h2 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white uppercase italic tracking-tighter leading-none">Inventory</h2>
+          <p className="text-zinc-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest opacity-60">Master Catalog</p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setIsCategoryManagerOpen(true)} className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm flex gap-2"><Settings2 className="h-4 w-4" /> Depts</Button>
-          
           <DropdownMenu>
             <DropdownMenuTrigger>
-               <div className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border border-zinc-200 dark:border-zinc-800 dark:text-white flex items-center justify-center px-4 cursor-pointer gap-2">
+               <div className="h-11 rounded-xl font-black uppercase text-[9px] tracking-widest border border-zinc-200 dark:border-zinc-800 dark:text-white flex items-center justify-center px-4 cursor-pointer gap-2 shadow-sm">
                   {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Catalog
                </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="rounded-2xl p-2 bg-white dark:bg-zinc-900 border-none shadow-2xl min-w-[200px] z-[6000]">
-               <DropdownMenuItem onClick={() => handleExport('img')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer">
-                  <ImageIcon className="h-4 w-4 text-blue-500" /> Export HD Image
-               </DropdownMenuItem>
-               <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer">
-                  <FileText className="h-4 w-4 text-red-500" /> Export Pro PDF
-               </DropdownMenuItem>
+               <DropdownMenuItem onClick={() => handleExport('img')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800"><ImageIcon className="h-4 w-4 text-blue-500" /> Export HD Image</DropdownMenuItem>
+               <DropdownMenuItem onClick={() => handleExport('pdf')} className="rounded-xl h-12 flex gap-3 font-black text-[10px] uppercase cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800"><FileText className="h-4 w-4 text-red-500" /> Export Pro PDF</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-11 rounded-xl font-black uppercase text-[9px] md:text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
+          <Button onClick={() => handleOpenMasterModal()} className="h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase text-[9px] md:text-[10px] tracking-widest px-4 md:px-6 shadow-xl active:scale-95 transition-transform"><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
+        </div>
+      </div>
 
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-11 rounded-xl font-black uppercase text-[10px] tracking-widest border-zinc-200 dark:border-zinc-800 dark:text-white shadow-sm">Import</Button>
-          <Button onClick={() => handleOpenMasterModal()} className="h-11 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase text-[10px] tracking-widest px-6 shadow-xl active:scale-95"><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-4 md:p-6 bg-white dark:bg-zinc-900 overflow-hidden relative border text-left">
+           <div className="absolute top-0 right-0 p-4 opacity-5"><PackageOpen className="h-16 w-16 md:h-20 md:w-20 dark:text-white" /></div>
+           <h4 className="text-[8px] md:text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Master Brands ({products.length})</h4>
+           <ScrollArea className="h-24">
+              <div className="space-y-2">
+                 {products.map(p => (
+                   <div key={p.id} className="flex justify-between items-center group">
+                      <span className="text-[10px] font-black uppercase italic dark:text-white truncate pr-4">{p.name}</span>
+                      <div className="flex gap-1 opacity-40 md:opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={() => handleOpenMasterModal(p)} className="p-1.5 text-zinc-400 hover:text-blue-500"><Edit2 className="h-3 w-3" /></button>
+                        <button onClick={() => handleDeleteMasterProduct(p.id, p.name)} className="p-1.5 text-zinc-300 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </ScrollArea>
+        </Card>
+
+        <Card className="border-none shadow-xl rounded-2xl overflow-hidden bg-zinc-900 dark:bg-zinc-800 text-white p-4 md:p-6 relative text-left">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+          <h4 className="text-[8px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2 relative z-10">Inventory Worth</h4>
+          <div className="text-2xl md:text-4xl font-black italic tracking-tighter relative z-10 tabular-nums">₹ {variants.reduce((a, b) => a + (b.cost_price * b.stock), 0).toLocaleString()}</div>
+        </Card>
+
+        <Card className="border-zinc-200 dark:border-zinc-800 shadow-xl rounded-2xl p-4 md:p-6 bg-white dark:bg-zinc-900 border text-left hidden lg:block">
+           <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Stock Health</h4>
+           <div className="space-y-4">
+              <div className="space-y-1">
+                 <div className="flex justify-between text-[8px] font-black uppercase"><span className="dark:text-white">Critical Stock</span><span className="text-red-600 font-bold">{variants.filter(v=>v.stock < 5).length} SKU</span></div>
+                 <Progress value={(variants.filter(v=>v.stock < 5).length / (variants.length || 1)) * 100} className="h-1 bg-red-100" />
+              </div>
+              <div className="space-y-1">
+                 <div className="flex justify-between text-[8px] font-black uppercase"><span className="dark:text-white">Healthy Stock</span><span className="text-emerald-600 font-bold">{variants.filter(v=>v.stock >= 5).length} SKU</span></div>
+                 <Progress value={(variants.filter(v=>v.stock >= 5).length / (variants.length || 1)) * 100} className="h-1 bg-emerald-100" />
+              </div>
+           </div>
+        </Card>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-center relative z-30">
+        <div className="relative group flex-1 w-full">
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-white transition-colors" />
+          <Input placeholder="Search catalog..." className="pl-14 h-14 md:h-16 rounded-2xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl font-bold tracking-tight text-base md:text-lg dark:text-white" value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl shadow-inner gap-1 self-stretch md:self-auto h-12 md:h-14">
+           <button onClick={() => setViewMode('grid')} className={cn("px-4 rounded-xl flex items-center gap-2 font-black text-[8px] md:text-[9px] uppercase tracking-widest transition-all", viewMode === 'grid' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}><LayoutGrid className="h-4 w-4" /> Grid</button>
+           <button onClick={() => setViewMode('list')} className={cn("px-4 rounded-xl flex items-center gap-2 font-black text-[8px] md:text-[9px] uppercase tracking-widest transition-all", viewMode === 'list' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}><List className="h-4 w-4" /> List</button>
         </div>
       </div>
 
       <AnimatePresence>
         {isSelectionMode && (
-          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-xl bg-blue-600 text-white rounded-3xl p-4 shadow-2xl flex items-center justify-between border border-blue-400">
-             <div className="flex items-center gap-4 px-4"><CheckCircle2 className="h-5 w-5" /><span className="font-black uppercase text-xs tracking-widest">{selectedIds.length} SELECTED</span></div>
-             <div className="flex gap-2"><Button onClick={handleBulkCategory} className="bg-white text-blue-600 hover:bg-blue-50 font-black uppercase text-[10px] tracking-widest h-11 rounded-xl px-6"><FolderInput className="h-4 w-4 mr-2" /> Assign Dept</Button><Button onClick={handleBulkDelete} className="bg-red-500 text-white hover:bg-red-600 font-black uppercase text-[10px] tracking-widest h-11 rounded-xl px-6"><Trash2 className="h-4 w-4 mr-2" /> Delete</Button><Button variant="ghost" onClick={() => setSelectedIds([])} className="h-11 w-11 rounded-xl text-white/50 hover:text-white"><X className="h-5 w-5" /></Button></div>
+          <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] w-[95%] sm:w-[90%] max-w-xl bg-blue-600 text-white rounded-[2rem] p-3 md:p-4 shadow-2xl flex items-center justify-between border border-blue-400">
+             <div className="flex items-center gap-2 md:gap-4 px-2 md:px-4">
+                <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
+                <span className="font-black uppercase text-[8px] md:text-xs tracking-widest">{selectedIds.length} SELECTED</span>
+             </div>
+             <div className="flex gap-1 md:gap-2">
+                <Button onClick={handleBulkCategory} size="sm" className="bg-white text-blue-600 hover:bg-blue-50 font-black uppercase text-[8px] md:text-[10px] tracking-widest h-9 md:h-11 rounded-xl"><FolderInput className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" /> Assign Dept</Button>
+                <Button onClick={handleBulkDelete} size="sm" className="bg-red-500 text-white hover:bg-red-600 font-black uppercase text-[8px] md:text-[10px] tracking-widest h-9 md:h-11 rounded-xl"><Trash2 className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" /> Delete</Button>
+                <Button variant="ghost" onClick={() => setSelectedIds([])} className="h-9 md:h-11 w-9 md:w-11 rounded-xl text-white/50 hover:text-white shrink-0"><X className="h-4 w-4 md:h-5 md:w-5" /></Button>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center relative z-30">
-        <div className="relative group flex-1 w-full"><Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-zinc-900 dark:group-focus-within:text-white" /><Input placeholder="Search catalog..." className="pl-14 h-16 rounded-2xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-xl font-bold tracking-tight text-lg dark:text-white" value={search} onChange={e=>setSearch(e.target.value)} /></div>
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl shadow-inner gap-1 self-stretch md:self-auto"><button onClick={() => setViewMode('grid')} className={cn("px-4 h-11 rounded-xl flex items-center gap-2 font-black text-[9px] uppercase tracking-widest transition-all", viewMode === 'grid' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}><LayoutGrid className="h-4 w-4" /> Grid</button><button onClick={() => setViewMode('list')} className={cn("px-4 h-11 rounded-xl flex items-center gap-2 font-black text-[9px] uppercase tracking-widest transition-all", viewMode === 'list' ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400")}><List className="h-4 w-4" /> List</button></div>
-      </div>
-
       <div className="pb-10">
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
             {filteredVariants.map(v => {
               const isSelected = selectedIds.includes(v.id);
               return (
                 <div key={v.id} className="relative group">
                   <div className={cn("transition-all duration-300", isSelected && "scale-95 opacity-80")}><ProductCard variant={v as any} onClick={() => isSelectionMode ? setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]) : setSelectedBarcodeItem(v)} /></div>
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]); }} className={cn("absolute top-3 left-3 p-2 rounded-xl transition-all z-20 shadow-xl", isSelected ? "bg-blue-600 text-white" : "bg-white/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-blue-600")}>{isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}</button>
-                  <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all"><button onClick={(e) => { e.stopPropagation(); handleOpenVariantModal(v); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-blue-600 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-blue-600 hover:text-white"><Edit2 className="h-4 w-4" /></button><button onClick={(e) => { e.stopPropagation(); handleDeleteVariant(v); }} className="p-2.5 bg-white dark:bg-zinc-800 rounded-full text-red-500 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-red-500 hover:text-white"><Trash2 className="h-4 w-4" /></button></div>
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id]); }} className={cn("absolute top-2 left-2 p-1.5 rounded-lg transition-all z-20 shadow-xl", isSelected ? "bg-blue-600 text-white" : "bg-white/80 dark:bg-zinc-800/80 text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-blue-600")}>{isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}</button>
+                  <div className="absolute top-2 right-2 flex flex-col gap-1.5 md:gap-2 opacity-40 md:opacity-0 group-hover:opacity-100 transition-all"><button onClick={(e) => { e.stopPropagation(); handleOpenVariantModal(v); }} className="p-2 md:p-2.5 bg-white dark:bg-zinc-800 rounded-full text-blue-600 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-blue-600 hover:text-white transition-all scale-90 md:scale-100"><Edit2 className="h-3 w-3 md:h-4 md:w-4" /></button><button onClick={(e) => { e.stopPropagation(); handleDeleteVariant(v); }} className="p-2 md:p-2.5 bg-white dark:bg-zinc-800 rounded-full text-red-500 shadow-xl border border-zinc-100 dark:border-zinc-700 hover:bg-red-500 hover:text-white transition-all scale-90 md:scale-100"><Trash2 className="h-3 w-3 md:h-4 md:w-4" /></button></div>
                 </div>
               );
             })}
-            <Button variant="outline" className="h-full min-h-[200px] border-2 border-dashed rounded-[2.5rem] flex flex-col gap-3 dark:border-zinc-800 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all w-full" onClick={() => handleOpenVariantModal()}><div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-inner"><Plus className="h-8 w-8 text-zinc-400" /></div><span className="text-[10px] font-black uppercase tracking-widest">New Variant</span></Button>
+            <Button variant="outline" className="h-full min-h-[160px] md:min-h-[200px] border-2 border-dashed rounded-[2rem] md:rounded-[2.5rem] flex flex-col gap-2 md:gap-3 dark:border-zinc-800 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all w-full" onClick={() => handleOpenVariantModal()}><div className="p-3 md:p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-inner"><Plus className="h-6 w-6 md:h-8 md:w-8 text-zinc-400" /></div><span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">New Variant</span></Button>
           </div>
         ) : (
-          <Card className="border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900">
-             <Table>
-                <TableHeader className="bg-zinc-50 dark:bg-zinc-950/50"><TableRow className="h-16 border-none text-left"><TableHead className="w-12"></TableHead><TableHead className="pl-4 font-black uppercase text-[10px] tracking-widest">Brand/Variant</TableHead><TableHead className="font-black uppercase text-[10px] tracking-widest">Stock</TableHead><TableHead className="font-black uppercase text-[10px] tracking-widest text-right">Price</TableHead><TableHead className="pr-8 text-right font-black uppercase text-[10px] tracking-widest">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                   {filteredVariants.map(v => {
-                     const isSelected = selectedIds.includes(v.id);
-                     return (
-                       <TableRow key={v.id} className={cn("h-20 border-zinc-50 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors group text-left", isSelected && "bg-blue-50 dark:bg-blue-900/20")}>
-                          <TableCell className="pl-6"><button onClick={() => setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id])} className={cn("transition-colors", isSelected ? "text-blue-600" : "text-zinc-300")}>{isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}</button></TableCell>
-                          <TableCell className="pl-4"><div className="font-black text-zinc-900 dark:text-white uppercase italic text-base leading-none mb-1">{v.productName}</div><div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{v.size} &bull; {v.barcode}</div></TableCell>
-                          <TableCell><Badge className={cn("rounded-lg font-black text-[10px]", v.stock < 5 ? "bg-red-500" : "bg-emerald-500")}>{v.stock} {v.unit.toUpperCase()}</Badge></TableCell>
-                          <TableCell className="text-right font-black text-xl tracking-tighter dark:text-white">₹{(v.pricing_type === 'bundle' && v.bundle_price) ? v.bundle_price : v.base_price}</TableCell>
-                          <TableCell className="pr-8 text-right"><div className="flex gap-2 justify-end"><Button variant="ghost" size="icon" onClick={() => setSelectedBarcodeItem(v)} className="h-10 w-10 text-zinc-400"><BarcodeIcon className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleOpenVariantModal(v)} className="h-10 w-10 text-blue-500 hover:bg-blue-50"><Edit2 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteVariant(v)} className="h-10 w-10 text-red-400 hover:bg-red-50"><Trash2 className="h-4 w-4" /></Button></div></TableCell>
-                       </TableRow>
-                     );
-                   })}
-                </TableBody>
-             </Table>
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden bg-white dark:bg-zinc-900 border">
+             <div className="overflow-x-auto">
+               <Table>
+                  <TableHeader className="bg-zinc-50 dark:bg-zinc-950/50"><TableRow className="h-14 md:h-16 border-none text-left"><TableHead className="w-10 md:w-12"></TableHead><TableHead className="pl-2 md:pl-4 font-black uppercase text-[8px] md:text-[10px] tracking-widest">Brand/Variant</TableHead><TableHead className="font-black uppercase text-[8px] md:text-[10px] tracking-widest">Stock</TableHead><TableHead className="font-black uppercase text-[8px] md:text-[10px] tracking-widest text-right">Price</TableHead><TableHead className="pr-4 md:pr-8 text-right font-black uppercase text-[8px] md:text-[10px] tracking-widest">Actions</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                     {filteredVariants.map(v => {
+                       const isSelected = selectedIds.includes(v.id);
+                       return (
+                         <TableRow key={v.id} className={cn("h-16 md:h-20 border-zinc-50 dark:border-zinc-800 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors group text-left", isSelected && "bg-blue-50 dark:bg-blue-900/20")}>
+                            <TableCell className="pl-4 md:pl-6"><button onClick={() => setSelectedIds(prev => isSelected ? prev.filter(id=>id!==v.id) : [...prev, v.id])} className={cn("transition-colors", isSelected ? "text-blue-600" : "text-zinc-300")}>{isSelected ? <CheckSquare className="h-4 w-4 md:h-5 md:w-5" /> : <Square className="h-4 w-4 md:h-5 md:w-5" />}</button></TableCell>
+                            <TableCell className="pl-2 md:pl-4 min-w-[120px]"><div className="font-black text-zinc-900 dark:text-white uppercase italic text-sm md:text-base leading-none mb-1 truncate max-w-[150px]">{v.productName}</div><div className="text-[8px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{v.size} &bull; {v.barcode}</div></TableCell>
+                            <TableCell><Badge className={cn("rounded-lg font-black text-[8px] md:text-[10px]", v.stock < 5 ? "bg-red-500" : "bg-emerald-500")}>{v.stock} {v.unit.toUpperCase()}</Badge></TableCell>
+                            <TableCell className="text-right font-black text-base md:text-xl tracking-tighter dark:text-white">₹{(v.pricing_type === 'bundle' && v.bundle_price) ? v.bundle_price : v.base_price}</TableCell>
+                            <TableCell className="pr-4 md:pr-8 text-right"><div className="flex gap-1 md:gap-2 justify-end"><Button variant="ghost" size="icon" onClick={() => setSelectedBarcodeItem(v)} className="h-8 w-8 md:h-10 md:w-10 text-zinc-400"><BarcodeIcon className="h-3 w-3 md:h-4 md:w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleOpenVariantModal(v)} className="h-8 w-8 md:h-10 md:w-10 text-blue-500 hover:bg-blue-50"><Edit2 className="h-3 w-3 md:h-4 md:w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteVariant(v)} className="h-8 w-8 md:h-10 md:w-10 text-red-400 hover:bg-red-50"><Trash2 className="h-3 w-3 md:h-4 md:w-4" /></Button></div></TableCell>
+                         </TableRow>
+                       );
+                     })}
+                  </TableBody>
+               </Table>
+             </div>
           </Card>
         )}
       </div>
 
+      {/* Variant Modal */}
       <Dialog open={!!selectedProductId || !!editingVariant} onOpenChange={o => { if(!o) { setSelectedProductId(null); setEditingVariant(null); } }}>
-        <DialogContent className="rounded-[2.5rem] p-10 max-w-md bg-white dark:bg-zinc-900 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
-           <DialogHeader><DialogTitle className="text-2xl font-black italic uppercase dark:text-white leading-tight">{editingVariant ? "MODIFY VARIANT" : "DEPLOY VARIANT"}<br/><span className="text-blue-600">{products.find(p => p.id === selectedProductId)?.name || "SELECT BRAND"}</span></DialogTitle></DialogHeader>
+        <DialogContent className="w-[95%] sm:max-w-md rounded-[2.5rem] p-6 md:p-10 bg-white dark:bg-zinc-900 border-none shadow-2xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader><DialogTitle className="text-xl md:text-2xl font-black italic uppercase dark:text-white leading-tight">{editingVariant ? "MODIFY VARIANT" : "DEPLOY VARIANT"}<br/><span className="text-blue-600 truncate block">{products.find(p => p.id === selectedProductId)?.name || "SELECT BRAND"}</span></DialogTitle></DialogHeader>
            <div className="space-y-6 pt-6 text-left">
               {!editingVariant && (
                 <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Parent Entity (Brand)</Label><Select onValueChange={(val: any) => setSelectedProductId(val)} value={selectedProductId || ""}><SelectTrigger className="h-14 rounded-2xl font-bold bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"><SelectValue>{products.find(p => p.id === selectedProductId)?.name || "Select Brand"}</SelectValue></SelectTrigger><SelectContent className="bg-white dark:bg-zinc-800 z-[6000] border-zinc-100 dark:border-zinc-700">{products.map(p => <SelectItem key={p.id} value={p.id} className="font-bold">{p.name}</SelectItem>)}</SelectContent></Select></div>
               )}
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Pricing Strategy</Label><div className="grid grid-cols-3 gap-2">{['standard', 'bundle', 'weight'].map(m => (<button key={m} type="button" onClick={()=>setPricingMode(m as any)} className={cn("h-12 rounded-xl text-[8px] font-black uppercase tracking-tighter border transition-all", (newPricingType === m || (m === 'weight' && newUnit === 'kg')) ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent shadow-lg scale-105" : "bg-zinc-50 dark:bg-zinc-800 text-zinc-400 dark:border-zinc-700")}>{m === 'bundle' ? 'Combo' : m}</button>))}</div></div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size / Dimension</Label>
-                    <Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre or Large" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
-                 </div>
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
-                      {newUnit === 'kg' ? "Min Sell Qty (KG)" : "Units in Pack"}
-                    </Label>
-                    <Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newUnitsPerCombo} onChange={e=>setNewUnitsPerCombo(e.target.value)} placeholder="1" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
-                     {newUnit === 'kg' ? "Stock in KG" : "Opening Stock"}
-                   </Label>
-                   <Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" />
-                </div>
-                
+              <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Size Details</Label><Input value={newSize} onChange={e=>setNewSize(e.target.value)} placeholder="e.g. 5 Litre" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">{newUnit === 'kg' ? "Min Sell Qty" : "Units in Pack"}</Label><Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newUnitsPerCombo} onChange={e=>setNewUnitsPerCombo(e.target.value)} placeholder="1" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div></div>
+              <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">{newUnit === 'kg' ? "Stock (KG)" : "Opening Stock"}</Label><Input type="number" step={newUnit === 'kg' ? "0.001" : "1"} value={newStock} onChange={e=>setNewStock(e.target.value)} placeholder="0" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-bold dark:text-white" /></div>
                 <div className="space-y-2">
                    {newUnit === 'kg' ? (
-                     <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 ml-1">
-                          Weight Pricing (Per KG)
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-blue-600">₹</span>
-                          <Input 
-                            type="number" 
-                            step="0.01"
-                            value={newPrice} 
-                            onChange={e=>setNewPrice(e.target.value)} 
-                            placeholder="Price per KG" 
-                            className="h-14 pl-10 rounded-xl bg-white dark:bg-zinc-900 border-none font-black text-xl text-blue-600 shadow-inner" 
-                          />
-                        </div>
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest px-1">Set the rate for 1.000 KG of this product</p>
+                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 space-y-1">
+                        <Label className="text-[8px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Price/KG</Label>
+                        <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 font-black text-blue-600 text-xs">₹</span><Input type="number" step="0.01" value={newPrice} onChange={e=>setNewPrice(e.target.value)} className="h-10 pl-7 rounded-xl bg-white dark:bg-zinc-900 border-none font-black text-sm text-blue-600 shadow-inner" /></div>
                      </div>
                    ) : (
-                     <>
-                       {newPricingType === 'standard' ? (
-                         <>
-                           <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label>
-                           <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" />
-                         </>
-                       ) : (
-                         <>
-                           <Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label>
-                           <div className="flex flex-col gap-2">
-                              <Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" />
-                              <Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs" />
-                           </div>
-                         </>
-                       )}
-                     </>
+                     <>{newPricingType === 'standard' ? (<><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Retail Price ₹</Label><Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="₹" className="h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700 font-black text-blue-600 dark:text-blue-400" /></>) : (<><Label className="text-[10px] font-black uppercase tracking-widest text-blue-600 ml-1">Combo Total ₹</Label><div className="flex flex-col gap-2"><Input type="number" value={newBundlePrice} onChange={e=>setNewBundlePrice(e.target.value)} placeholder="Total Price ₹" className="h-14 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-900 font-black text-blue-600 dark:text-blue-400 shadow-inner" /><Input type="number" value={newPrice} onChange={e=>setNewPrice(e.target.value)} placeholder="Loose Price ₹" className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-xs dark:text-white" /></div></>)}</>
                    )}
                 </div>
               </div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Variant Identity</Label><div className="border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 flex flex-col items-center gap-3 relative bg-zinc-50 dark:bg-zinc-800/50 group hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors overflow-hidden text-center text-zinc-400 font-bold uppercase text-[9px]"><input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e=>setCapturedFile(e.target.files?.[0] || null)} />{capturedFile ? (<div className="relative w-full h-20"><img src={URL.createObjectURL(capturedFile)} className="w-full h-full object-cover rounded-xl" /><div className="absolute inset-0 bg-blue-600/10 animate-pulse rounded-xl" /></div>) : (<><Camera className="h-8 w-8 text-zinc-300" />Update Media</>)}</div></div>
-              <Button onClick={handleSaveVariant} disabled={isUploading} className="w-full h-20 rounded-[2.5rem] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">{isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (editingVariant ? 'UPDATE DEPLOYMENT' : 'AUTHORISE DEPLOYMENT')}</Button>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Variant Identity</Label><div className="border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 flex flex-col items-center gap-3 relative bg-zinc-50 dark:bg-zinc-800/50 group hover:border-zinc-300 transition-colors overflow-hidden text-center text-zinc-400 font-bold uppercase text-[9px]"><input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={e=>setCapturedFile(e.target.files?.[0] || null)} />{capturedFile ? (<div className="relative w-full h-20"><img src={URL.createObjectURL(capturedFile)} className="w-full h-full object-cover rounded-xl" /><div className="absolute inset-0 bg-blue-600/10 animate-pulse rounded-xl" /></div>) : (<><Camera className="h-8 w-8 text-zinc-300" />Update Media</>)}</div></div>
+              <Button onClick={handleSaveVariant} disabled={isUploading} className="w-full h-16 md:h-20 rounded-[2rem] md:rounded-[2.5rem] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">{isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (editingVariant ? 'UPDATE DEPLOYMENT' : 'AUTHORISE DEPLOYMENT')}</Button>
            </div>
         </DialogContent>
       </Dialog>
