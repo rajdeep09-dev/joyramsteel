@@ -70,10 +70,12 @@ export function GstInvoiceModal({ isOpen, onClose, initialItems, initialReceiver
         setShopDetails(viewOnlyData.shopDetails);
       } else if (initialItems && initialItems.length > 0) {
         const formatted = initialItems.map(item => {
-          const rate = item.base_price;
+          // Rule: Prioritize bundle_price for combos
+          const isBundle = item.pricing_type === 'bundle' && item.bundle_price;
+          const rate = isBundle ? item.bundle_price : item.base_price;
           const taxable = rate / 1.18;
           return {
-            desc: `${item.productName} - ${item.size}`.toUpperCase(),
+            desc: `${item.productName} - ${item.size}`.toUpperCase() + (isBundle ? " (COMBO)" : ""),
             hsn: "7323",
             qty: item.qty.toString(),
             unit: item.unit || 'pcs',
