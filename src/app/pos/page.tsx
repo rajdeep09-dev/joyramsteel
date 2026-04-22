@@ -175,34 +175,35 @@ export default function POS() {
   };
 
   return (
-    <div className="h-[calc(100vh-6rem)] md:h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto pb-24 md:pb-6 px-4 md:px-0 text-left">
+    <div className="h-full flex flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto pb-32 md:pb-6 px-4 md:px-0 text-left">
       <ReceiptModal isOpen={showReceipt} onClose={() => setShowReceipt(false)} saleData={lastSale || {}} items={lastItems} onGenerateGst={(items) => { setGstInitialItems(items); setIsGstModalOpen(true); }} />
       <GstInvoiceModal isOpen={isGstModalOpen} onClose={() => setIsGstModalOpen(false)} initialItems={gstInitialItems} />
 
       {/* Catalog Section */}
-      <Card className="flex-[1.5] flex flex-col min-h-0 border-zinc-200 shadow-xl rounded-[2rem] md:rounded-3xl overflow-hidden bg-white">
+      <Card className="flex-[1.5] flex flex-col min-h-[500px] md:min-h-0 border-zinc-200 shadow-xl rounded-[2rem] md:rounded-3xl overflow-visible md:overflow-hidden bg-white relative z-20">
         <div className="p-4 md:p-6 border-b border-zinc-100 flex gap-2 md:gap-4 items-center bg-zinc-50/50">
-          <div className="flex-1"><ProductSearch onSelect={addToCart} onQueryChange={setSearch} placeholder="Search... (⌘+K)" /></div>
+          <div className="flex-1 relative z-50"><ProductSearch onSelect={addToCart} onQueryChange={setSearch} placeholder="Search... (⌘+K)" /></div>
           <Button size="icon" className="h-14 w-14 md:h-16 md:w-16 rounded-2xl bg-zinc-900 shrink-0"><ScanLine className="h-6 w-6" /></Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-4 md:px-6 pt-3 md:pt-4 overflow-x-auto scrollbar-hide">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 relative z-10">
+          <div className="px-4 md:px-6 pt-3 md:pt-4 overflow-x-auto scrollbar-hide shrink-0">
             <TabsList className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full justify-start h-auto flex-wrap md:flex-nowrap gap-1 md:gap-2">
               <TabsTrigger value="all" className="rounded-lg px-4 md:px-6 py-2 font-bold uppercase text-[8px] md:text-[10px] tracking-widest">All</TabsTrigger>
               {categories.map(c => <TabsTrigger key={c.id} value={c.name} className="rounded-lg px-4 md:px-6 py-2 font-bold uppercase text-[8px] md:text-[10px] tracking-widest whitespace-nowrap">{c.name}</TabsTrigger>)}
             </TabsList>
           </div>
           <ScrollArea className="flex-1 p-4 md:p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 md:gap-6 pb-20">
                {filteredCatalog.map((v) => <ProductCard key={v.id} variant={v as any} onClick={() => addToCart(v)} />)}
+               {filteredCatalog.length === 0 && <div className="col-span-full py-20 text-center opacity-30 font-black uppercase text-xs tracking-widest">No products found</div>}
             </div>
           </ScrollArea>
         </Tabs>
       </Card>
 
       {/* Cart Section */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col gap-4 md:gap-6 shrink-0 min-h-0">
+      <div className="w-full lg:w-[380px] xl:w-[420px] flex flex-col gap-4 md:gap-6 shrink-0 min-h-0 relative z-10">
         <Card className="flex-1 border-zinc-200 shadow-xl rounded-[2rem] md:rounded-3xl flex flex-col min-h-0 bg-white">
           <div className="p-4 md:p-6 border-b border-zinc-100 flex justify-between items-center">
             <h3 className="font-black text-lg md:text-xl flex items-center gap-3 tracking-tight uppercase italic"><ShoppingCart className="h-5 w-5 text-blue-600" /> Cart</h3>
